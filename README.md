@@ -40,10 +40,11 @@ For this simple test, we'll just go with the session identifier.  We're going to
 like this:
 
 ```
-if (vanity.show("zebra", req.session.id))
+if (vanity.show("zebra", req.session.id)) {
   title = "Zebras available, get yours now!";
-else
+} else {
   title = "Flully animals for sale!";
+}
 ```
 
 In doing that we captured all our visitors and for each one recorded which alternative they've seen.
@@ -180,7 +181,7 @@ To get at that information we record the outcome of each experiment.  For exampl
 ```
 post("/checkout", function(req, res, next) {
   var cart = findCart(req.session.id);
-  vanity.outcome(req.session.id, "zebra", cart.total());
+  vanity.outcome("zebra", req.session.id, cart.total());
   ...
 })
 ```
@@ -190,241 +191,299 @@ deviation and compare those across alternatives.  If you use a string, Vanity ca
 This is only useful if you have a small set of known values (e.g. subscription plans).
 
 
-
-
-
-
-
-
 ## Funnels
 
-Funnels take a user through multiple conversion goals.  A funnel can then analyize what percentage completed each goal
-before moving to the next one.
+Funnels take a user through multiple conversion goals, analyzing what percentage completed each goal before moving on to
+the next one.  Or, if you like, what percentage dropped off at each step of the way.
 
-To use a funnel you first need to define the steps that make up a funnel:
-
-```
-vanity.funnel("shoppe", ["added-to-cart", "checked-out"]);
-```
-
-Or add funnel steps to existing experiment:
+Defining a funnel is as easy as naming it and listing the steps:
 
 ```
-vanity.split("shoppe").funnel(["added-to-cart", "checked-out"]);
+vanity.funnel("laundry", ["washed", "dried", "folded"]);
 ```
 
-Then collect the data by calling `outcome` once for each stage, for example:
+Once again we collect data by calling `outcome`, and specify the step just completed.  For example:
 
 ```
-post("/add", function(req, res, next) {
-  vanity.outcome(req.session.id, "shoppe", "added-to-cart");
+post("/wash", function(req, res, next) {
   ...
+  vanity.outcome("laundry", req.session.id, "washed");
 })
 
-post("/checkout", function(req, res, next) {
-  vanity.outcome(req.session.id, "shoppe", "checked-out");
+post("/dry", function(req, res, next) {
   ...
+  vanity.outcome("laundry", req.session.id, "dried");
 })
 ```
+
+There is no point in calling `show` on a funnel.
 
 
 ## Rolling Out
 
-You can use Vanity.js to roll out features to a subset of users by treating each feature as an experiment and ignoring
-the outcome.
+You can also use Vanity.js to roll out a feature to a subset of users.  It works much like a split test with a default
+option and second option that is progressively exposed to more and more users.
 
-Simply define a split for your feature:
-
-```
-vanity.rollout("moar_bacon", 10)
-```
-
-And write your code so the second alternative is treated as the new feature:
+To roll out a feature to 10% of users:
 
 ```
-if (vanity.show(req.session.id "moar_bacon"))
+vanity.rollout("moar_bacon", 10);
+```
+
+Essentially there are two alternatives, the default (number 0) and the feature we're rolling out (number 1).  Because 0
+evaluates to `false` and one to `true` we can write our code like this:
+
+```
+if (vanity.show("moar_bacon", req.session.id)) {
   req.render "main_with_bacon";
-else
-  req.render "main";
+} else {
+  req.render "main_original";
+}
 ```
+There is no point in calling `outcome` on a roll-out.
+
+
+## Activity Stream
+
+Vanity includes an activity stream you can use to visualize usage of your application.
+
+Each activity consists of an actor and a verb: the person performing an action, and the action being performed.  An
+activity may also include an object, a target and any number of labels.
+
+Most actions are performed on an object, e.g.  posting a comment or uploading a video.  Some actions have an object and
+a target, e.g. the object of the post would be the comment, and the target of the post would be the comment thread.
+
+Labels are used to classify and filter activities.
+
+This examples records that I upvoted a post on the HackerNews site:
+
+```
+var actor = {
+  id: "aarkin",
+  displayName: "Assaf Arkin",
+  image: {
+    url: "http://content.labnotes.org/profile-photo.jpg",
+    width: 304,
+    height: 398
+  },
+  url: "http://arkin.me",
+  objectType: "person"
+}
+var object = {
+  id: "3667450",
+  displayName: "Induction: A Polyglot Database Client For Mac OS X",
+  url: "http://news.ycombinator.com/item?id=3667450",
+  objectType: "post"
+}
+var target = {
+  id: "hackernews",
+  displayName: "Hacker News",
+  url: "http://news.ycombinator.com",
+  objectType: "site"
+}
+var labels = [
+  "vote:up"
+]
+vanity.activity(actor, "upvoted", { object: object, target: target, labels: labels })
+```
+
+## Using Vanity On The Server
+
+There are two parts to this.  The first part deals with configuring Vanity and connecting it to a back-end.  Whether you
+intend to use Vanity on the server, only in the browser, or in both, you need to follow this step.
+
+The second part deals with using split tests, roll-outs, activity stream, etc.  For these you just need to require the
+`vanity` module and use it per the examples above.
+
+So let's show you how to configure Vanity.
+
+**TBD**
+
+
+## Using Vanity In The Browser
+
+The basic requirement for using Vanity in the browser is including the JavaScript library.  For example:
+
+```
+<script src="/scripts/vanity.js"></script>
+```
+
+Vanity supports the CommonJS module system, so you can require it as part of a module definition.
+
+Of course, nothing much will happen if Vanity is disconnected from the server, so you need to configure it on the server
+(see above) and attach the handler to an endpoint of your choice.  For example, with Express you could do this:
+
+```
+server.post("/vanity", Vanity.handler());
+```
+
+In the browser, point Vanity at the same endpoint:
+
+```
+vanity.connect("/vanity");
+```
+
+Voila.  You may also want to specify a refresh interval, the default is 5 seconds.
+
 
 
 ## The Client API
 
-`vanity.split(id)` Returns a split test without modifying it.  If the split-test does't exist, creates and returns a new
-one with two alternatives.
+### Vanity module
 
-`vanity.split(id, number)` Creates and returns a split test with specified number of alternatives (1 or more).  If split
-test exists, would add as many alternatives as necessary to read that number.
+#### split(id)
 
-`vanity.split(id, [alts])` Creates and returns a split test with specified alternatives (1 or more).  Each array item
-may be a weight (number), `null` (split remaining weights), alternative title (string) or array with alternative title
-and weight.
+Returns a `SplitTest` without modifying it.  If there is no such split test, creates a new one with two alternatives.
 
-`vanity.split(id, function, titles)` Creates and returns a split test using the specified function.  The last argument
-can be the number of alternatives, or titles for all alternatives.
+#### split(id, number)
 
-`vanity.funnel(id)` Returns a funnel without modifying it.  If the funnel doesn't exist, creates and returns a new one.
+Returns a `SplitTest` with the specified number of alternatives.  If the split test already exists, modifies it to have
+at least as many alternatives as specified by the second argument.
 
-`vanity.funnel(id, [stages])` Creates and returns a funnel with the specified stages.  If funnel doesn't exist, creates
-a new one.
+#### split(id, [alt ...])
 
-`vanity.rollout(id)` Returns a roll-out without modifying it.  If the roll-out doesn't exist, creates and returns a new
-one with 100/0 ratio.
+Returns a `SplitTest` with the specified number of alternatives.  If the split test already exists, modifies is to have
+at least as many alternatives as specified, and changes alternative weights and titles as specified by the array.
 
-`vanity.rollout(id, ratio)` Creates and returns a feature roll-out.  If roll-out doesn't exist, creates a new one,
-otherwise, changes the percentage ratio of the second alternative (value 1) to the specified number.
+Each array element can be one of:
+- Weight to assign that alternative (number betwee 0 and 100)
+- `null` to assign that alternative an equal split of the remaining weight
+- A title for that alternative
+- An array with title and weight
 
-`vanity.show(participant, experiment)` Returns alternative number to show the specified participant.
+#### split(id, function, number)
 
-`vanity.outcome(participant, experiment, value)` Records that participant has met a particular goal.  Outcome may be a
-value (number) or a label (string).  For funnels, outcome must be one of the specified stages.  For roll-out this does
-nothing.
+Returns a `SplitTest` using the specified split function and number of alternatives.  If the split test already exists,
+modifies it to have at least as many alternatives as specified.  It will also assign the new split function.
 
-The `split`, `funnel` and `rollout` methods all return an object on which you can call `show` and `outcome` with a
-single argument.  You can also call `for(participant)`, which returns a object on which you can call `show` and
-`outcome` with no arguments (or only the outcome value).
+The split function is called with two arguments, the argument passed to `show`/`outcome` and the split test object.  The
+split function returns an array with two elements, the participant identifier (string or number) and the alternative
+number (from 0 to n-1).
 
-Split tests, funnels and roll-outs all share the same namespace.  Attempting to call `rollout` with identifier already
-used for a split test will result in an error.`
+#### split(id, function, [title ...])
 
+Returns a `SplitTest` using the specified split function and number of alternatives.  If the split test already exists,
+modifies it to have at least as many alternatives as specified.  It will also assign the new split function, and set the
+title of each alternative.
 
-## The Web API
+#### funnel(id)
 
-### Experiments
+Returns a `Funnel` without modifying it.
 
-Deals with creating, updating, deleting and viewing experiments.
+#### funnel(id, [step ...])
 
-#### List
+Creates and returns a `Funnel` with the specified set of steps.
 
-`GET /v1/experiments`
+#### rollout(id)
 
-Returns a JSON document with the property `experiments` listing recent experiments.  The `total` property indicates
-total number of experiments.
+Returns a `RollOut` without modifying it.  If there is no such roll-out, creates a new one and sets the ratio of 0.
 
-For example:
+#### rollout(id, ratio)
 
-```
-{ "experiments": [
-    { "id": "zerba",
-      "type": "experiment",
-      "alternatives": [
-        { "title": "Default title",
-          "ratio": 50,
-          "participanting": 250,
-          "outcomes": {
-            "count": 73,
-            "mean": 20,
-            "stdev": 8,
-            "frequency": {
-              10: 35,
-              20: 24,
-              30: 14
-            }
-          }
-        },
-        { "title": "Zebra for sale",
-          "ratio": 50,
-          "participanting": 12,
-          "outcomes": {
-            "count": 8,
-            "mean": 10,
-            "stddev": 3,
-            "frequency": {
-              10: 5,
-              20: 2,
-              30: 1
-            }
-          }
-        }
-      ],
-      "version": 3,
-      "modified": "2012-03-01T16:04:21Z",
-      "started": "2012-03-01T10:55:23Z"
-    }
-  ],
-  "total": 1
-}
-```
+Returns a `RollOut` with the specified ratio (number from 0 to 100) for the second alternative.  If the roll-out already
+exists, modifies its ratio, otherwise creates a new roll-out.
 
-#### Retrieve
+#### rollout(id, function, ratio)
 
-`GET /v1/experiments/:id`
+Returns a `RollOut` with the specified ratio (number from 0 to 100) for the second alternative.  If the roll-out already
+exists, modifies its ratio, otherwise creates a new roll-out.`
 
-Returns a JSON document with the most recent version of the experiment.
+#### rollout(id, function, ratio)
 
-`GET /v1/experiments/:id/:version`
+Returns a `RollOut` using the specified split function and ratio for the second alternative.  If the roll-out already
+exists, modifies its ratio, otherwise creates a new roll-out.  It will also assign the new split function.
 
-Returns a JSON document with specific version of the experiment.
+The split function is called with two arguments, the argument passed to `show` and the roll-out object.  The split
+function returns an array with two elements, the participant identifier (string or number) and `true` or `false`.
 
-#### Create/Update
+#### show(id, participant)
 
-`PUT /v1/experiments/:id`
+When used with a split test, returns the alternative number for the given participant and split test.  If the split test
+doesn't exist, creates a new one with two alternatives.
 
-Creates or updates the experiment from a JSON document.  If the experiment already exists, changes some of its
-attributes, otherwise, creates a new experiment.
+When used with a roll-out, returns either `true` (rolled-out changes) or `false` for the given participant and feature.
+If the roll-out doesn't exist, creates a new one with the ratio 0.
 
-Properties that are not understood or cannot be changed (e.g.  start time or participating count) are ignored.
+In both cases, the participant identifier can be a string or a number, and when using a split function, any object that
+the function accepts.
 
-You can add new alternatives, change the title and the weight of existing alternatives.  Do not change the order of
-alternatives or you will render the results meaningless.  If you want to disable an alternative moving forward, set its
-weight to zero.
+#### outcome(id, participant, value)
 
-#### Deleting
+When used with a split test, indicates conversion of the given participant and split test.  The value is optional, if
+used, it may be a numeric value or a string.  If the split test doesn't exist, creates a new one with two alternatives.
 
-`DELETE /v1/experiments/:id`
+When used with a funnel, indicates conversion of the given participant and split test.  The value is required and must
+be the name of a step in the funnel.
 
-Deletes the experiment.
+The participant identifier can be a string or a number, and when using a split function (split test only), any object
+that the function accepts.
+
+#### activity(actor, verb, options)
+
+Adds an activity to the stream.  The activity must have an actor and a verb.  Options may include the `object` on which
+the action is performed, the `target` to which the object belong, and any number of `labels`.
+
+#### for(participant)
+
+Returns a `Participant` object for the given participant identifier.  This can be used as a short-cut for calling the
+`show` and `outcome` methods.
+
+#### connect(endpoint, interval)
+
+Used to connect Vanity to a back-end and specify the refresh interval (omit to use the default value).
 
 
-### Participants
+### SplitTest
 
-#### Retrieve Participation
+#### show(participant)
 
-`GET /v1/participant/:experiment/:id`
+See `show` method for the `Vanity` module.
 
-If the participant participated in this experiment, returns a JSON document describing their participation.  Otherwise,
-returns an empty string.
+#### outcome(participant, value)
 
-For example:
+See `outcome` method for the `Vanity` module.
 
-```
-{ "id": "5678",
-  "started": "2012-03-01T10:55:23Z",
-  "completed": "2012-03-01T10:56:05Z",
-  "alternative": 0,
-  "outcomes": {
-    "gold": "2012-03-01T10:56:05Z"
-  }
-}
-```
+#### alternativeFor(identifier)
 
-#### Mark Participation
+Returns an alternative for the given participant.  The `show` method will pass the participant argument to the split
+function which may (and the default split function does) call this method.  This method only accepts string or number.
 
-`PUT /v1/participant/:experiment/:id`
 
-Used to add participant to this experiment.  Associates the participant with this experiment and returns the alterantive
-as a number.  This request is idempotent so can be used multiple times in the same experiment, always returning the same
-alternative.
+### RollOut
 
-You can also use this to force the participant into a particular alternative.  The alternative can only be set once.
+#### show(participant)
 
-#### Record Outcome
+See `show` method for the `Vanity` module.
 
-`POST /v1/participant/:experiment/:id`
+#### featureFor(identifier)
 
-Used to record the outcome of an experiment.  The document body is a number, string or empty.  The value is used as the
-outcome for this particular participant.
+Returns `true` or `false`.  The `show` method will pass the participant argument to the split function which may (and
+the default split function does) call this method.  This method only accepts string or number.
 
-This request will create a participant if one doesn't already exist.
 
-Adds to existing list of outcomes for this participant.  Note that duplicate outcomes (same value as previous outcome)
-are ignored.
+### Funnel
 
-#### Delete Participation
+#### outcome(participant, step)
 
-`DELETE /v1/participant/:experiment/:id`
+See `outcome` method for the `Vanity` module.
 
-Deletes participant from experiment.
+
+### Participant
+
+#### show(id)
+
+See `show` method for the `Vanity` module.
+
+#### outcome(id, step)
+
+See `outcome` method for the `Vanity` module.
+
+#### activity(verb, options)
+
+Adds an activity to the stream.  If participant is an object, uses its properties as the actor; otherwise assumes the
+participant is an identifier (string or number) and makes up a name based on that identifier.
+
+Options may include the `object` on which the action is performed, the `target` to which the object belong, and any
+number of `labels`.
 
 
