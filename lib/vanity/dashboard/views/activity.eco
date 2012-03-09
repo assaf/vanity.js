@@ -1,0 +1,19 @@
+<div id="activity-<%= @_id %>" class="activity">
+  <span class="actor">
+    <% if @actor.url : %><a href="<%= @actor.url %>"></a><% end %>
+      <% if @actor.image : %><img src="<%= @actor.image %>" class="avatar"><% end %>
+      <span class="name"><%= @actor.displayName %></span>
+    <% if @actor.url : %></a"></a><% end %>
+  </span>
+  <span class="verb"><%= @verb %></span>
+  <% if @object?.displayName : %>
+    <span class="object">
+      <% if @object.url : %>
+        <a href="<%= @object.url %>"><%= @object.displayName %></a>
+      <% else: %>
+        <%= @object.displayName %>
+      <% end %>
+    </span>
+  <% end %>
+  <% if @Object?.image : %><div class="media image"><img src="<%= @object.image %>"></div><% end %>
+</div>

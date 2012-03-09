@@ -1,0 +1,36 @@
+{ "name": "vanity",
+  "version": "0.1.0",
+  "description": "Split testing, conversion funnels and feature roll-out.  We got all that.",
+  "author": "Assaf Arkin <assaf@labnotes.org> (http://labnotes.org/)",
+  "main": "lib/vanity",
+  "scripts": {
+    "test":   "mocha"
+  },
+  "engines": {
+    "node": ">= 0.6.0"
+  },
+  "dependencies": {
+    "coffee-script":    "~1.2",
+    "connect":          "~1.8",
+    "eco":              "~1.1.0",
+    "express":          "~2.5.8",
+    "poutine":          "~0.2.0"
+  },
+  "devDependencies": {
+    "mocha":            "~0.14",
+    "zombie":           "~0.12.15"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/assaf/vanity.js"
+  },
+  "bugs": {
+    "url": "http://github.com/assaf/vanity.js/issues"
+  },
+  "licenses": [
+    { "type": "MIT",
+      "url": "http://github.com/assaf/vanity.js/blob/master/MIT-LICENSE"
+    }
+  ]
+}
+

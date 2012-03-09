@@ -287,6 +287,9 @@ var labels = [
 vanity.activity(actor, "upvoted", { object: object, target: target, labels: labels })
 ```
 
+For more information, see the [JSON Activity Streams 1.0](http://activitystrea.ms/specs/json/1.0/)
+
+
 ## Using Vanity On The Server
 
 There are two parts to this.  The first part deals with configuring Vanity and connecting it to a back-end.  Whether you
@@ -385,16 +388,11 @@ exists, modifies its ratio, otherwise creates a new roll-out.
 
 #### rollout(id, function, ratio)
 
-Returns a `RollOut` with the specified ratio (number from 0 to 100) for the second alternative.  If the roll-out already
-exists, modifies its ratio, otherwise creates a new roll-out.`
-
-#### rollout(id, function, ratio)
-
 Returns a `RollOut` using the specified split function and ratio for the second alternative.  If the roll-out already
 exists, modifies its ratio, otherwise creates a new roll-out.  It will also assign the new split function.
 
 The split function is called with two arguments, the argument passed to `show` and the roll-out object.  The split
-function returns an array with two elements, the participant identifier (string or number) and `true` or `false`.
+function returns `true` or `false`.
 
 #### show(id, participant)
 
