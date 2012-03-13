@@ -1,7 +1,7 @@
 <div id="activity-<%= @_id %>" class="activity">
   <span class="actor">
-    <% if @actor.url : %><a href="<%= @actor.url %>"></a><% end %>
-      <% if @actor.image : %><img src="<%= @actor.image %>" class="avatar"><% end %>
+    <% if @actor.url : %><a href="<%= @actor.url %>"><% end %>
+      <% if @actor.image && @actor.image.url : %><img src="<%= @actor.image.url %>" class="avatar"><% end %>
       <span class="name"><%= @actor.displayName %></span>
     <% if @actor.url : %></a"></a><% end %>
   </span>
