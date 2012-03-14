@@ -53,8 +53,8 @@ male = (percentile)->
 
 # Given an identifier, returns a suitable name (given name, followed by first later of family name).
 name = (identifier)->
-  md5 = Crypto.createHash("MD5")
-  code = parseInt(md5.update(identifier).digest("hex"), 16)
+  sha = Crypto.createHash("SHA1")
+  code = parseInt(sha.update(identifier).digest("hex"), 16)
   gender = if code % 200 >= 100 then female else male
   given = gender(code % 100)
   family = UPPERCASE[(code / 100) % 26]
