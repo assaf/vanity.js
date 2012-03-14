@@ -16,4 +16,5 @@
     </span>
     <% if @object.image : %><a class="media image" href="<%= @object.url || @object.image.url %>"><img src="<%= @object.image.url %>"></a><% end %>
   <% end %>
+  <span class="timestamp"><%= @timestamp.toLocaleString() %></span>
 </div>

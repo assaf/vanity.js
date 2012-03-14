@@ -170,6 +170,16 @@ describe "activity", ->
         assert.equal browser.query(".activity a.image img").getAttribute("src"), "http://awe.sm/5hWp5"
 
 
+  # Activity time stamp
+  describe "timestamp", ->
+    before (done)->
+      Activity.create actor: { displayName: "Assaf" }, verb: "tested", timestamp: new Date(1331706824865), (error, doc)->
+        activity_id = doc._id
+        browser.visit "/activity/#{activity_id}", done
+
+    it "should show activity time stamp in current locale", ->
+      assert.equal browser.query(".activity .timestamp").textContent, "Tue Mar 13 2012 23:33:44 GMT-0700 (PDT)"
+
   after ->
     Poutine.connect().driver (error, db)->
       db.dropCollection(Activity.collection_name)
