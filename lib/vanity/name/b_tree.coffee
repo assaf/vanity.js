@@ -1,3 +1,44 @@
+# Implements a B-Tree for quickly finding a name based on its cumulative frequency.
+#
+# Exports a function that returns a tree.  The tree supports two methods:
+# - add(key, value) adds a value at the specified key (key is number, value is string)
+# - done() balances the tree and returns the finder function
+#
+# The finder function accepts a key and returns a value.
+#
+# For example:
+#
+#   BTree = require("b_tree")
+#   my_tree = BTree()
+#   my_tree.add 5, "5 percent"
+#   my_tree.add 75, "75 percent"
+#   find = my_tree.done()
+#   console.log find(50)
+#   => "75 percent"
+#
+# ---
+#
+# We want to return a name based on its actual distribution in the US population.  For example, Mary is the most popular
+# name at 2.629%, but Beverly is only at 0.2627%.  We want to return Mary 10x more often than we return Beverly.
+#
+# To do that, we pick an evenly distributed number between 0 and 100 (exclusive), and we use that to pick a name based
+# on its cumulative frequency.
+#
+# The cumulative frequency of Beverly is 36.9, so any value above that would pick some other name.  The cumulative
+# frequency of Theresa is 36.633, so only a value between 36.633 (exclusive) and 36.9 (inclusive) will match Beverly.
+# That gap is exactly 0.267.
+#
+# So given a list of names and their cumulative frequency (which the US Census Bureau so nicely provides us), and some
+# value between 0 and 100, all we need is a quick way to find the name with cumulative frequency range that includes
+# that value.  B-Tree does that.
+#
+# ---
+#
+# Fortunately for us, the list we're working from is sorted by cumulative frequency, and since building a full B-Tree
+# implementation is boring, we're going to build an algorithm that can only do two things:
+# - Iterate through the sorted set and construct a binary tree without having to balance nodes
+# - A finder
+#
 # The final binary tree looks like this: eacn node is an object with properties left, right and limit.  If a key is
 # at/below limit, pick the left, otherwise pick the right.  Each node has a string (name) for left/right values.
 #
@@ -47,6 +88,7 @@ add_item = (layer, limit, value)->
     else
       # This is the first (possibly only) node at this layer
       layer.first = current
+  return
 
 
 # Find the top most node in the tree, starting from the bottom layer.
@@ -85,5 +127,6 @@ tree = ->
       balance top
       return find.bind(this, top)
   return object
+
 
 module.exports = tree

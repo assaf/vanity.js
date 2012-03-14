@@ -1,9 +1,17 @@
 assert = require("assert")
 File   = require("fs")
-{ female, male } = require("../lib/vanity/names")
+name   = require("../lib/vanity/name")
+{ male, female } = name
 
 
 describe "names", ->
+  unique = (source)->
+    return source.reduce((array, value)->
+      unless ~array.indexOf(value)
+        array.push value
+      return array
+    , [])
+
 
   describe "males", ->
     it "should return James in 3.318 percentile", ->
@@ -22,10 +30,10 @@ describe "names", ->
       assert.equal male(107), "Robert"
 
     it "should work correctly for all names", ->
-      rows = File.readFileSync("#{__dirname}/../lib/vanity/names/us.male.tab", "utf-8").trim().split(/\n/)
+      rows = File.readFileSync("#{__dirname}/../lib/vanity/name/us.male.tab", "utf-8").trim().split(/\n/)
       for row in rows
-        [name, freq, cumul] = row.split(/\s+/)
-        assert.equal name, male(parseFloat(cumul)).toUpperCase()
+        [given, freq, cumul] = row.split(/\s+/)
+        assert.equal given, male(parseFloat(cumul)).toUpperCase()
 
 
   describe "females", ->
@@ -44,9 +52,29 @@ describe "names", ->
       assert.equal female(105), "Barbara"
 
     it "should work correctly for all names", ->
-      rows = File.readFileSync("#{__dirname}/../lib/vanity/names/us.female.tab", "utf-8").trim().split(/\n/)
+      rows = File.readFileSync("#{__dirname}/../lib/vanity/name/us.female.tab", "utf-8").trim().split(/\n/)
       for row in rows
-        [name, freq, cumul] = row.split(/\s+/)
-        assert.equal name, female(parseFloat(cumul)).toUpperCase()
+        [given, freq, cumul] = row.split(/\s+/)
+        assert.equal given, female(parseFloat(cumul)).toUpperCase()
 
+
+  describe "from ID", ->
+    it "should return given name and first letter of family name", ->
+      assert.equal name("85bb3cfe1"), "Lester G."
+
+    it "should return female names", ->
+      assert.equal name("1ff4efbdf"), "Dawn Y."
+
+    it "should return male names", ->
+      assert.equal name("7864c456f"), "Bobby Y."
+
+    it "should return same name consistently for same ID", ->
+      ids = ["07F9F5E2F3", "07F9F5E2F3", "07F9F5E2F3", "07F9F5E2F3", "07F9F5E2F3", "07F9F5E2F3"]
+      names = ids.map((id)-> name(id)).sort()
+      assert.deepEqual unique(names), ["Christina S."]
+
+    it "should return different name for different ID", ->
+      ids = ["07F9F5E2F3", "31F509B60E", "CDE02B9F4B", "D624D97240", "6913D09DA8", "8E44C8C990"]
+      names = ids.map((id)-> name(id)).sort()
+      assert.deepEqual unique(names), ["Alonso M.","Christina S.","Eric Q.","Janet I.","Nancy U.","Trista A."]
 
