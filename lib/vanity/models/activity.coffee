@@ -11,8 +11,9 @@ class Activity extends Model
   @field "verb", String
   @field "object"
   @field "timestamp", Date
+  @field "location"
 
-  @create = ({ id, timestamp, actor, verb, object }, callback)->
+  @create = ({ id, timestamp, actor, verb, object, location }, callback)->
     throw new Error("Activity requires verb") unless verb
     throw new Error("Activity requires actor") unless actor && (actor.displayName || actor.id)
     # Each activity has a timestamp, default to now.
@@ -30,23 +31,26 @@ class Activity extends Model
       id = sha.update(values.join(":")).digest("hex")
 
     doc =
-      _id: id
+      _id: id.toString()
       actor:
         # If actor name is not specified, we can make one up based on actor ID.  This is used when you have an
         # anonymized activity stream, but still want to see related activities by same visitor.
-        displayName:  actor.displayName || name(actor.id)
-        url:          actor.url
+        displayName:  (actor.displayName || name(actor.id)).toString()
+        url:          actor.url?.toString()
         image:        actor.image
-      verb: verb
-      timestamp: timestamp
+      verb: verb.toString()
+      timestamp: new Date(timestamp)
 
     # Some activities have an object.  An object must have display name and/or URL.  We show display name if we have
     # one, but we consider the activity unique based on object URL (see SHA above).
     if object && (object.displayName || object.url)
       doc.object =
-        displayName: object.displayName || object.url
-        url:         object.url
-        image:       object.image?.url && object.image
+        displayName: (object.displayName || object.url).toString()
+        url:         object.url?.toString()
+        image:       object.image
+    if location
+      doc.location =
+        displayName: location.toString()
 
     Activity.insert doc, callback
 

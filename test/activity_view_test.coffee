@@ -177,8 +177,23 @@ describe "activity", ->
         activity_id = doc._id
         browser.visit "/activity/#{activity_id}", done
 
-    it "should show activity time stamp in current locale", ->
+    it "should show activity timestamp in current locale", ->
       assert.equal browser.query(".activity .timestamp").textContent, "Tue Mar 13 2012 23:33:44 GMT-0700 (PDT)"
+
+
+  # Activity location
+  describe "location", ->
+    before (done)->
+      Activity.create actor: { displayName: "Assaf" }, verb: "tested", location: "San Francisco", (error, doc)->
+        activity_id = doc._id
+        browser.visit "/activity/#{activity_id}", done
+
+    it "should show activity location following timestamp", ->
+      assert browser.query(".activity .timestamp + .location")
+
+    it "should show activity location", ->
+      assert.equal browser.query(".activity .location").textContent, "From San Francisco"
+
 
   after ->
     Poutine.connect().driver (error, db)->
