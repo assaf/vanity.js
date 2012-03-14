@@ -60,21 +60,21 @@ describe "names", ->
 
   describe "from ID", ->
     it "should return given name and first letter of family name", ->
-      assert.equal name("85bb3cfe1"), "Lester G."
+      assert.equal name("85bb3cfe1"), "Willie I."
 
     it "should return female names", ->
-      assert.equal name("1ff4efbdf"), "Dawn Y."
+      assert.equal name("1ff4efbdf"), "Dawn A."
 
     it "should return male names", ->
-      assert.equal name("7864c456f"), "Bobby Y."
+      assert.equal name("7864c456f"), "James A."
 
     it "should return same name consistently for same ID", ->
       ids = ["07F9F5E2F3", "07F9F5E2F3", "07F9F5E2F3", "07F9F5E2F3", "07F9F5E2F3", "07F9F5E2F3"]
       names = ids.map((id)-> name(id)).sort()
-      assert.deepEqual unique(names), ["Christina S."]
+      assert.deepEqual unique(names), ["Lester S."]
 
     it "should return different name for different ID", ->
       ids = ["07F9F5E2F3", "31F509B60E", "CDE02B9F4B", "D624D97240", "6913D09DA8", "8E44C8C990"]
       names = ids.map((id)-> name(id)).sort()
-      assert.deepEqual unique(names), ["Alonso M.","Christina S.","Eric Q.","Janet I.","Nancy U.","Trista A."]
+      assert.deepEqual unique(names), ["Alfonso O.", "Alicia Q.", "Christopher I.", "Goldie I.", "Lester S."]
 
