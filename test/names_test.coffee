@@ -1,6 +1,6 @@
 assert = require("assert")
 File   = require("fs")
-name   = require("../lib/vanity/name")
+name   = require("../lib/vanity/names")
 { male, female } = name
 
 
@@ -30,10 +30,35 @@ describe "names", ->
       assert.equal male(107), "Robert"
 
     it "should work correctly for all names", ->
-      rows = File.readFileSync("#{__dirname}/../lib/vanity/name/us.male.tab", "utf-8").trim().split(/\n/)
-      for row in rows
-        [given, freq, cumul] = row.split(/\s+/)
-        assert.equal given, male(parseFloat(cumul)).toUpperCase()
+      sample =
+        JAMES:       3.318
+        JOHN:        6.589
+        ROBERT:      9.732
+        MICHAEL:    12.361
+        WILLIAM:    14.812
+        FRED:       53.241
+        WAYNE:      53.490
+        BILLY:      53.738
+        STEVE:      53.984
+        LOUIS:      54.227
+        WESLEY:     69.760
+        GORDON:     69.864
+        DEAN:       69.968
+        GREG:       70.071
+        JORGE:      70.175
+        EDUARDO:    78.559
+        TERRENCE:   78.606
+        ENRIQUE:    78.652
+        FREDDIE:    78.698
+        WADE:       78.743
+        AUSTIN:     78.786
+        ELDEN:      90.026
+        DORSEY:     90.029
+        DARELL:     90.033
+        BRODERICK:  90.036
+        ALONSO:     90.040
+      for given, cumul of sample
+        assert.equal given, male(cumul).toUpperCase()
 
 
   describe "females", ->
@@ -52,10 +77,45 @@ describe "names", ->
       assert.equal female(105), "Barbara"
 
     it "should work correctly for all names", ->
-      rows = File.readFileSync("#{__dirname}/../lib/vanity/name/us.female.tab", "utf-8").trim().split(/\n/)
-      for row in rows
-        [given, freq, cumul] = row.split(/\s+/)
-        assert.equal given, female(parseFloat(cumul)).toUpperCase()
+      sample =
+        MARY:        2.629
+        PATRICIA:    3.702
+        LINDA:       4.736
+        BARBARA:     5.716
+        ELIZABETH:   6.653
+        GUADALUPE:  66.626
+        BELINDA:    66.685
+        MARGARITA:  66.743
+        SHERYL:     66.802
+        CORA:       66.860
+        RUTHIE:     78.930
+        NELDA:      78.944
+        MINERVA:    78.958
+        LILLY:      78.973
+        TERRIE:     78.987
+        LETHA:      79.001
+        FAYE:       66.917
+        GENA:       80.748
+        BRIANA:     80.758
+        TIESHA:     87.648
+        TAKISHA:    87.650
+        STEFFANIE:  87.652
+        SINDY:      87.654
+        SANTANA:    87.656
+        MEGHANN:    87.658
+        KAYCEE:     89.545
+        KALYN:      89.546
+        JOYA:       89.547
+        JOETTE:     89.548
+        JENAE:      89.549
+        JANIECE:    89.550
+        ARDELIA:    90.020
+        ANNELLE:    90.021
+        ANGILA:     90.022
+        ALONA:      90.023
+        ALLYN:      90.024
+      for given, cumul of sample
+        assert.equal given, female(cumul).toUpperCase()
 
 
   describe "from ID", ->

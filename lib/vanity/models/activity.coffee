@@ -5,7 +5,7 @@
 
 Crypto    = require("crypto")
 Search    = require("../search")
-name      = require("../name")
+name      = require("../names")
 geocode   = require("../utils/geocode")
 
 
