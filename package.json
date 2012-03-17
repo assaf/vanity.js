@@ -13,8 +13,8 @@
     "coffee-script":    "~1.2",
     "connect":          "~1.8",
     "eco":              "~1.1.0",
-    "express":          "~2.5.8",
-    "poutine":          "~0.2.0"
+    "elastical":        "~0.0.7",
+    "express":          "~2.5.8"
   },
   "devDependencies": {
     "mocha":            "~0.14",
@@ -33,4 +33,3 @@
     }
   ]
 }
-

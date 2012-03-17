@@ -1,8 +1,9 @@
-assert  = require("assert")
-Browser = require("zombie")
-Poutine = require("poutine")
-server  = require("../lib/vanity/dashboard")
-Activity = require("../lib/vanity/models/activity")
+process.env.NODE_ENV = "test"
+assert    = require("assert")
+Browser   = require("zombie")
+server    = require("../lib/vanity/dashboard")
+Activity  = require("../lib/vanity/models/activity")
+Search    = require("../lib/vanity/search")
 
 
 Browser.site = "localhost:3003"
@@ -13,7 +14,8 @@ describe "activity", ->
   activity_id = null
 
   before (done)->
-    server.listen 3003, done
+    server.listen 3003, ->
+      Search.initialize done
 
 
   # Activity actor.
@@ -22,7 +24,7 @@ describe "activity", ->
     describe "name only", ->
       before (done)->
         Activity.create actor: { displayName: "Assaf" }, verb: "posted", (error, doc)->
-          activity_id = doc._id
+          activity_id = doc.id
           browser.visit "/activity/#{activity_id}", done
     
       it "should include activity identifier", ->
@@ -43,7 +45,7 @@ describe "activity", ->
 
       before (done)->
         Activity.create actor: { id: "29245d14" }, verb: "posted", (error, doc)->
-          activity_id = doc._id
+          activity_id = doc.id
           browser.visit "/activity/#{activity_id}", done
 
       it "should make name up from actor ID", ->
@@ -53,7 +55,7 @@ describe "activity", ->
     describe "image", ->
       before (done)->
         Activity.create actor: { displayName: "Assaf", image: { url: "http://awe.sm/5hWp5" } }, verb: "posted", (error, doc)->
-          activity_id = doc._id
+          activity_id = doc.id
           browser.visit "/activity/#{activity_id}", done
     
       it "should include avatar", ->
@@ -66,7 +68,7 @@ describe "activity", ->
     describe "url", ->
       before (done)->
         Activity.create actor: { displayName: "Assaf", url: "http://labnotes.org", image: { url: "http://awe.sm/5hWp5" } }, verb: "posted", (error, doc)->
-          activity_id = doc._id
+          activity_id = doc.id
           browser.visit "/activity/#{activity_id}", done
 
       it "should link to actor", ->
@@ -84,7 +86,7 @@ describe "activity", ->
 
     before (done)->
       Activity.create actor: { displayName: "Assaf" }, verb: "tested", (error, doc)->
-        activity_id = doc._id
+        activity_id = doc.id
         browser.visit "/activity/#{activity_id}", done
 
     it "should show verb after actor", ->
@@ -97,7 +99,7 @@ describe "activity", ->
     describe "missing", ->
       before (done)->
         Activity.create actor: { displayName: "Assaf" }, verb: "tested", (error, doc)->
-          activity_id = doc._id
+          activity_id = doc.id
           browser.visit "/activity/#{activity_id}", done
 
       it "should not show object part", ->
@@ -106,7 +108,7 @@ describe "activity", ->
     describe "name only", ->
       before (done)->
         Activity.create actor: { displayName: "Assaf" }, verb: "tested", object: { displayName: "this view" }, (error, doc)->
-          activity_id = doc._id
+          activity_id = doc.id
           browser.visit "/activity/#{activity_id}", done
 
       it "should show object following verb", ->
@@ -118,7 +120,7 @@ describe "activity", ->
     describe "URL only", ->
       before (done)->
         Activity.create actor: { displayName: "Assaf" }, verb: "tested", object: { url: "http://awe.sm/5hWp5" }, (error, doc)->
-          activity_id = doc._id
+          activity_id = doc.id
           browser.visit "/activity/#{activity_id}", done
 
       it "should show object as link", ->
@@ -130,7 +132,7 @@ describe "activity", ->
     describe "name and URL", ->
       before (done)->
         Activity.create actor: { displayName: "Assaf" }, verb: "tested", object: { displayName: "this link", url: "http://awe.sm/5hWp5" }, (error, doc)->
-          activity_id = doc._id
+          activity_id = doc.id
           browser.visit "/activity/#{activity_id}", done
 
       it "should show object as link", ->
@@ -142,7 +144,7 @@ describe "activity", ->
     describe "with image (no URL)", ->
       before (done)->
         Activity.create actor: { displayName: "Assaf" }, verb: "tested", object: { displayName: "this link", image: { url: "http://awe.sm/5hWp5" } }, (error, doc)->
-          activity_id = doc._id
+          activity_id = doc.id
           browser.visit "/activity/#{activity_id}", done
 
       it "should show image media following object", ->
@@ -157,7 +159,7 @@ describe "activity", ->
     describe "with image (and URL)", ->
       before (done)->
         Activity.create actor: { displayName: "Assaf" }, verb: "tested", object: { displayName: "this link", url: "http://awe.sm/5hbLb", image: { url: "http://awe.sm/5hWp5" } }, (error, doc)->
-          activity_id = doc._id
+          activity_id = doc.id
           browser.visit "/activity/#{activity_id}", done
 
       it "should show image media following object", ->
@@ -173,8 +175,8 @@ describe "activity", ->
   # Activity time stamp
   describe "timestamp", ->
     before (done)->
-      Activity.create actor: { displayName: "Assaf" }, verb: "tested", timestamp: new Date(1331706824865), (error, doc)->
-        activity_id = doc._id
+      Activity.create actor: { displayName: "Assaf" }, verb: "tested", published: new Date(1331706824865), (error, doc)->
+        activity_id = doc.id
         browser.visit "/activity/#{activity_id}", done
 
     it "should show activity timestamp in current locale", ->
@@ -185,7 +187,7 @@ describe "activity", ->
   describe "location", ->
     before (done)->
       Activity.create actor: { displayName: "Assaf" }, verb: "tested", location: "San Francisco", (error, doc)->
-        activity_id = doc._id
+        activity_id = doc.id
         browser.visit "/activity/#{activity_id}", done
 
     it "should show activity location following timestamp", ->
@@ -194,7 +196,3 @@ describe "activity", ->
     it "should show activity location", ->
       assert.equal browser.query(".activity .location").textContent, "From San Francisco"
 
-
-  after ->
-    Poutine.connect().driver (error, db)->
-      db.dropCollection(Activity.collection_name)

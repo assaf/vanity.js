@@ -3,8 +3,10 @@ Activity = require("../models/activity")
 
 server = Express.createServer()
 server.get "/activity/:id", (req, res, next)->
-  Activity.find req.params.id, (error, activity)->
-    return next(error) if error
+  Activity.get req.params.id, (error, activity)->
+    if error
+      next(error)
+      return
     if activity
       activity.layout = null
       res.render "activity", activity
