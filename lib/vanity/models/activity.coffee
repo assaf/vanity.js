@@ -1,3 +1,8 @@
+# Activity stream.
+#
+# Activity stream consists of multiple activities.
+
+
 Crypto    = require("crypto")
 Search    = require("../search")
 name      = require("../name")
@@ -5,9 +10,24 @@ name      = require("../name")
 
 class Activity
 
+  # Creates a new activity.
+  #
+  # id        - Unique activity identifier.
+  # actor     - The actor is an object with id, displayName, url and image.  Requires at least id or displayName.
+  # verb      - Activity verb.
+  # object    - If activity has an object, it may specify displayName, url and/or image.
+  # location  - Optional and consists of displayName and lat, lon.
+  # published - When activity was published (defaults to null).
+  #
+  # If no activity identifier is specified, one will be created based on the various activity fields.  If successfuly,
+  # the callback includes the activity identifier.
   @create: ({ id, published, actor, verb, object, location }, callback)->
-    throw new Error("Activity requires verb") unless verb
-    throw new Error("Activity requires actor") unless actor && (actor.displayName || actor.id)
+    unless verb
+      callback new Error("Activity requires verb")
+      return
+    unless actor && (actor.displayName || actor.id)
+      callback new Error("Activity requires actor")
+      return
     # Each activity has a timestamp, default to now.
     published ||= new Date()
 
@@ -50,7 +70,7 @@ class Activity
     Search.index.index "activity", doc, options, (error)->
       # TODO: proper logging comes here
       console.error error if error
-      callback error, doc
+      callback error, id
 
 
   # Returns activity by id.

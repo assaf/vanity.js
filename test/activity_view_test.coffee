@@ -11,7 +11,6 @@ Browser.site = "localhost:3003"
 
 describe "activity", ->
   browser = new Browser()
-  activity_id = null
 
   before (done)->
     server.listen 3003, ->
@@ -22,9 +21,15 @@ describe "activity", ->
   describe "actor", ->
 
     describe "name only", ->
+      activity_id = null
+
       before (done)->
-        Activity.create actor: { displayName: "Assaf" }, verb: "posted", (error, doc)->
-          activity_id = doc.id
+        params =
+          actor:
+            displayName:  "Assaf"
+          verb:           "posted"
+        Activity.create params, (error, id)->
+          activity_id = id
           browser.visit "/activity/#{activity_id}", done
     
       it "should include activity identifier", ->
@@ -44,8 +49,11 @@ describe "activity", ->
     describe "no name but id", ->
 
       before (done)->
-        Activity.create actor: { id: "29245d14" }, verb: "posted", (error, doc)->
-          activity_id = doc.id
+        params =
+          actor:
+            id:   "29245d14"
+          verb:   "posted"
+        Activity.create params, (error, activity_id)->
           browser.visit "/activity/#{activity_id}", done
 
       it "should make name up from actor ID", ->
@@ -54,8 +62,13 @@ describe "activity", ->
       
     describe "image", ->
       before (done)->
-        Activity.create actor: { displayName: "Assaf", image: { url: "http://awe.sm/5hWp5" } }, verb: "posted", (error, doc)->
-          activity_id = doc.id
+        params =
+          actor:
+            displayName:  "Assaf"
+            image:
+              url:        "http://awe.sm/5hWp5"
+          verb:           "posted"
+        Activity.create params, (error, activity_id)->
           browser.visit "/activity/#{activity_id}", done
     
       it "should include avatar", ->
@@ -67,8 +80,14 @@ describe "activity", ->
 
     describe "url", ->
       before (done)->
-        Activity.create actor: { displayName: "Assaf", url: "http://labnotes.org", image: { url: "http://awe.sm/5hWp5" } }, verb: "posted", (error, doc)->
-          activity_id = doc.id
+        params =
+          actor:
+            displayName:  "Assaf"
+            url:          "http://labnotes.org"
+            image:
+              url:        "http://awe.sm/5hWp5"
+          verb:           "posted"
+        Activity.create params, (error, activity_id)->
           browser.visit "/activity/#{activity_id}", done
 
       it "should link to actor", ->
@@ -85,8 +104,10 @@ describe "activity", ->
   describe "verb", ->
 
     before (done)->
-      Activity.create actor: { displayName: "Assaf" }, verb: "tested", (error, doc)->
-        activity_id = doc.id
+      params =
+        actor:  { displayName: "Assaf" }
+        verb:   "tested"
+      Activity.create params, (error, activity_id)->
         browser.visit "/activity/#{activity_id}", done
 
     it "should show verb after actor", ->
@@ -98,8 +119,10 @@ describe "activity", ->
    
     describe "missing", ->
       before (done)->
-        Activity.create actor: { displayName: "Assaf" }, verb: "tested", (error, doc)->
-          activity_id = doc.id
+        params =
+          actor:  { displayName: "Assaf" }
+          verb:   "tested"
+        Activity.create params, (error, activity_id)->
           browser.visit "/activity/#{activity_id}", done
 
       it "should not show object part", ->
@@ -107,8 +130,12 @@ describe "activity", ->
 
     describe "name only", ->
       before (done)->
-        Activity.create actor: { displayName: "Assaf" }, verb: "tested", object: { displayName: "this view" }, (error, doc)->
-          activity_id = doc.id
+        params =
+          actor:          { displayName: "Assaf" }
+          verb:           "tested"
+          object:
+            displayName:  "this view"
+        Activity.create params, (error, activity_id)->
           browser.visit "/activity/#{activity_id}", done
 
       it "should show object following verb", ->
@@ -119,8 +146,12 @@ describe "activity", ->
 
     describe "URL only", ->
       before (done)->
-        Activity.create actor: { displayName: "Assaf" }, verb: "tested", object: { url: "http://awe.sm/5hWp5" }, (error, doc)->
-          activity_id = doc.id
+        params =
+          actor:  { displayName: "Assaf" }
+          verb:   "tested"
+          object:
+            url:  "http://awe.sm/5hWp5"
+        Activity.create params, (error, activity_id)->
           browser.visit "/activity/#{activity_id}", done
 
       it "should show object as link", ->
@@ -131,8 +162,13 @@ describe "activity", ->
 
     describe "name and URL", ->
       before (done)->
-        Activity.create actor: { displayName: "Assaf" }, verb: "tested", object: { displayName: "this link", url: "http://awe.sm/5hWp5" }, (error, doc)->
-          activity_id = doc.id
+        params =
+          actor:          { displayName: "Assaf" }
+          verb:           "tested"
+          object:
+            displayName:  "this link"
+            url:          "http://awe.sm/5hWp5"
+        Activity.create params, (error, activity_id)->
           browser.visit "/activity/#{activity_id}", done
 
       it "should show object as link", ->
@@ -143,8 +179,14 @@ describe "activity", ->
 
     describe "with image (no URL)", ->
       before (done)->
-        Activity.create actor: { displayName: "Assaf" }, verb: "tested", object: { displayName: "this link", image: { url: "http://awe.sm/5hWp5" } }, (error, doc)->
-          activity_id = doc.id
+        params =
+          actor:          { displayName: "Assaf" }
+          verb:           "tested"
+          object:
+            displayName:  "this link"
+            image:
+              url:        "http://awe.sm/5hWp5"
+        Activity.create params, (error, activity_id)->
           browser.visit "/activity/#{activity_id}", done
 
       it "should show image media following object", ->
@@ -158,8 +200,15 @@ describe "activity", ->
 
     describe "with image (and URL)", ->
       before (done)->
-        Activity.create actor: { displayName: "Assaf" }, verb: "tested", object: { displayName: "this link", url: "http://awe.sm/5hbLb", image: { url: "http://awe.sm/5hWp5" } }, (error, doc)->
-          activity_id = doc.id
+        params =
+          actor:          { displayName: "Assaf" }
+          verb:           "tested"
+          object:
+            displayName:  "this link"
+            url:          "http://awe.sm/5hbLb"
+            image:
+              url:        "http://awe.sm/5hWp5"
+        Activity.create params, (error, activity_id)->
           browser.visit "/activity/#{activity_id}", done
 
       it "should show image media following object", ->
@@ -175,8 +224,11 @@ describe "activity", ->
   # Activity time stamp
   describe "timestamp", ->
     before (done)->
-      Activity.create actor: { displayName: "Assaf" }, verb: "tested", published: new Date(1331706824865), (error, doc)->
-        activity_id = doc.id
+      params =
+        actor:      { displayName: "Assaf" }
+        verb:       "tested"
+        published:  new Date(1331706824865)
+      Activity.create params, (error, activity_id)->
         browser.visit "/activity/#{activity_id}", done
 
     it "should show activity timestamp in current locale", ->
@@ -186,8 +238,11 @@ describe "activity", ->
   # Activity location
   describe "location", ->
     before (done)->
-      Activity.create actor: { displayName: "Assaf" }, verb: "tested", location: "San Francisco", (error, doc)->
-        activity_id = doc.id
+      params =
+        actor:      { displayName: "Assaf" }
+        verb:       "tested"
+        location:   "San Francisco"
+      Activity.create params, (error, activity_id)->
         browser.visit "/activity/#{activity_id}", done
 
     it "should show activity location following timestamp", ->
