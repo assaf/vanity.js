@@ -1,21 +1,13 @@
-process.env.NODE_ENV = "test"
+{ setup } = require("./helper")
 assert    = require("assert")
 Browser   = require("zombie")
-server    = require("../lib/vanity/dashboard")
 Activity  = require("../lib/vanity/models/activity")
-Search    = require("../lib/vanity/search")
-
-
-Browser.site = "localhost:3003"
 
 
 describe "activity", ->
   browser = new Browser()
 
-  before (done)->
-    server.listen 3003, ->
-      Search.initialize done
-
+  before setup
 
   # Activity actor.
   describe "actor", ->
@@ -249,5 +241,5 @@ describe "activity", ->
       assert browser.query(".activity .timestamp + .location")
 
     it "should show activity location", ->
-      assert.equal browser.query(".activity .location").textContent, "From San Francisco"
+      assert.equal browser.query(".activity .location").textContent, "From San Francisco, CA, USA"
 

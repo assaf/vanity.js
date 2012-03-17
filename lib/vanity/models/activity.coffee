@@ -6,6 +6,8 @@
 Crypto    = require("crypto")
 Search    = require("../search")
 name      = require("../name")
+geocode   = require("../utils/geocode")
+
 
 
 class Activity
@@ -60,17 +62,30 @@ class Activity
         displayName: (object.displayName || object.url).toString()
         url:         object.url?.toString()
         image:       object.image
-    if location
-      doc.location =
-        displayName: location.toString()
 
-    options =
-      create: false
-      id:     id
-    Search.index.index "activity", doc, options, (error)->
-      # TODO: proper logging comes here
-      console.error error if error
-      callback error, id
+    # This in fact stores the document.  In Node callback world, we write functions backwards.
+    store = ->
+      options =
+        create: false
+        id:     id
+      Search.index.index "activity", doc, options, (error)->
+        # TODO: proper logging comes here
+        if error then console.error error
+        callback error, id
+
+    # If location provided we need some geocoding action.
+    if location
+      geocode location, (error, result)->
+        # TODO: proper logging comes here
+        if error then console.error error
+        if result
+          doc.location = result
+        else
+          doc.location = { displayName: location }
+        store()
+    else
+      store()
+
 
 
   # Returns activity by id.
