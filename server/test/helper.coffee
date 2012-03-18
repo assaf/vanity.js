@@ -2,13 +2,11 @@ process.env.NODE_ENV = "test"
 
 Browser   = require("zombie")
 Replay    = require("replay")
-Search    = require("../lib/vanity/search")
-dashboard = require("../lib/vanity/dashboard")
+server    = require("../config/server")
 
 
 setup = (done)->
-  dashboard.listen 3003, ->
-    Search.initialize done
+  server.listen 3003, done
 
 Browser.site = "localhost:3003"
 

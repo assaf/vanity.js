@@ -4,9 +4,9 @@
 
 
 Crypto    = require("crypto")
-Search    = require("../search")
-name      = require("../names")
-geocode   = require("../utils/geocode")
+search    = require("../config/search")
+name      = require("../lib/vanity/names")
+geocode   = require("../lib/vanity/utils/geocode")
 
 
 
@@ -68,10 +68,11 @@ class Activity
       options =
         create: false
         id:     id
-      Search.index.index "activity", doc, options, (error)->
-        # TODO: proper logging comes here
-        if error then console.error error
-        callback error, id
+      search (es_index)->
+        es_index.index "activity", doc, options, (error)->
+          # TODO: proper logging comes here
+          if error then console.error error
+          callback error, id
 
     # If location provided we need some geocoding action.
     if location
@@ -90,7 +91,8 @@ class Activity
 
   # Returns activity by id.
   @get: (id, callback)->
-    Search.index.get id, callback
+    search (es_index)->
+      es_index.get id, callback
 
 
 module.exports = Activity

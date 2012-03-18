@@ -1,7 +1,7 @@
 { setup } = require("./helper")
 assert    = require("assert")
 Browser   = require("zombie")
-Activity  = require("../lib/vanity/models/activity")
+Activity  = require("../models/activity")
 
 
 describe "activity", ->
