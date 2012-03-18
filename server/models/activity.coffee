@@ -89,10 +89,16 @@ class Activity
 
 
 
-  # Returns activity by id.
+  # Returns activity by id (null if not found).
   @get: (id, callback)->
     search (es_index)->
-      es_index.get id, callback
+      es_index.get id, ignoreMissing: true, callback
+
+
+  # Deletes activity by id.
+  @delete: (id, callback)->
+    search (es_index)->
+      es_index.delete "activity", id, ignoreMissing: true, callback
 
 
 module.exports = Activity
