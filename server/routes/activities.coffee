@@ -21,6 +21,21 @@ server.post "/activity", (req, res, next)->
     res.send error.message, 400
 
 
+# Retrieve single activity, either as JSON or HTML.
+server.get "/activity/:id", (req, res, next)->
+  Activity.get req.params.id, (error, activity)->
+    if error
+      next(error)
+    else if activity
+      if req.accepts("html")
+        activity.layout = null
+        res.render "activity", activity
+      else
+        res.send activity, 200
+    else
+      next()
+
+
 # Retrieve recent activities
 #
 # Supports the following query parameters:
@@ -85,23 +100,30 @@ server.get "/activity/day/:date", (req, res)->
   searchAndRender params, res
 
 
-# Retrieve single activity, either as JSON or HTML.
-server.get "/activity/:id", (req, res, next)->
-  Activity.get req.params.id, (error, activity)->
+server.get "/activity/stream", (req, res, next)->
+  res.writeHead 200,
+    "Content-Type":   "text/event-stream; charset=utf-8"
+    "Cache-Control":  "no-cache"
+    "Connection":     "keep-alive"
+
+  Activity.search {}, (error, result)->
     if error
       next(error)
-    else if activity
-      if req.accepts("html")
-        activity.layout = null
-        res.render "activity", activity
-      else
-        res.send activity, 200
-    else
-      next()
+      return
 
+    for i in [result.activities.length - 1..0] by -1
+      activity = result.activities[i]
+      res.write "id: #{activity.id}\ndata: #{JSON.stringify(activity)}\n\n"
+    setTimeout ->
+      res.write "id: 4\ndata: test\n\n"
+    , 100
 
-server.get "/activity/stream", (req, res, next)->
-  next()
+    console.log "Done"
+    #res.end()
+
+  res.socket.on "close", ->
+    console.log "Socket closed"
+    next()
 
 
 # Delete activity.

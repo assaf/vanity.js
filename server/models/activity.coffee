@@ -115,7 +115,7 @@ class Activity
         query_string:
           query: options.query || "*"
       from:   options.offset || 0
-      size:   Math.min(options.limit, 250)
+      size:   Math.min(options.limit || 250, 250)
       sort:   { published: "desc" }
     # Only if specified
     params.from = options.offset if options.offset

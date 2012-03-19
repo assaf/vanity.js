@@ -1,16 +1,19 @@
-assert    = require("assert")
-Async     = require("async")
-request   = require("request")
-Activity  = require("../models/activity")
-search    = require("../config/search")
-{ setup } = require("./helper")
+assert            = require("assert")
+Async             = require("async")
+{ EventEmitter }  = require("events")
+request           = require("request")
+Activity          = require("../models/activity")
+search            = require("../config/search")
+{ setup }         = require("./helper")
+SSEClient         = require("./sse_client")
 
 
 describe "activity", ->
   before setup
 
 
-  # Creating an activity
+  # -- Creating an activity --
+  
   describe "post", ->
     statusCode = body = headers = null
     params =
@@ -68,7 +71,82 @@ describe "activity", ->
     after search.teardown
 
 
-  # Listing all activities
+  # -- Getting an activity --
+  
+  describe "get activity", ->
+    statusCode = body = headers = null
+
+    before (done)->
+      params =
+        id:     "seeme"
+        actor:  { displayName: "Assaf" }
+        verb:   "posted"
+      Activity.create id: "seeme", actor: { displayName: "Assaf" }, verb: "tested", done
+
+    describe "JSON", (done)->
+      before (done)->
+        headers = { "Accept": "application/json" }
+        request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return 200", ->
+        assert.equal statusCode, 200
+
+      it "should return a JSON document", ->
+        assert /application\/json/.test(headers['content-type'])
+
+      it "should return the activity", ->
+        activity = JSON.parse(body)
+        assert.equal activity.id, "seeme"
+        assert.equal activity.actor.displayName, "Assaf"
+
+    describe "HTML", (done)->
+      before (done)->
+        headers = { "Accept": "text/html" }
+        request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return 200", ->
+        assert.equal statusCode, 200
+
+      it "should return an HTML document", ->
+        assert /text\/html/.test(headers['content-type'])
+        assert /<div/.test(body)
+
+    describe "any content type", (done)->
+      before (done)->
+        headers = { "Accept": "*/*" }
+        request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return 200", ->
+        assert.equal statusCode, 200
+
+      it "should return an HTML document", ->
+        assert /text\/html/.test(headers['content-type'])
+        assert /<div/.test(body)
+
+    describe "no such activity", (done)->
+      before (done)->
+        headers = { "Accept": "*/*" }
+        request.get "http://localhost:3003/activity/nosuch", headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return 404", ->
+        assert.equal statusCode, 404
+
+      it "should return an error message", ->
+        assert.equal body, "Cannot GET /activity/nosuch"
+
+    after search.teardown
+  
+
+  # -- Listing all activities --
+  
   describe "list activities", ->
     statusCode = body = headers = null
 
@@ -210,79 +288,8 @@ describe "activity", ->
     after search.teardown
 
 
-  # Getting an activity
-  describe "get activity", ->
-    statusCode = body = headers = null
-
-    before (done)->
-      params =
-        id:     "seeme"
-        actor:  { displayName: "Assaf" }
-        verb:   "posted"
-      Activity.create id: "seeme", actor: { displayName: "Assaf" }, verb: "tested", done
-
-    describe "JSON", (done)->
-      before (done)->
-        headers = { "Accept": "application/json" }
-        request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
-          { statusCode, headers, body } = response
-          done()
-
-      it "should return 200", ->
-        assert.equal statusCode, 200
-
-      it "should return a JSON document", ->
-        assert /application\/json/.test(headers['content-type'])
-
-      it "should return the activity", ->
-        activity = JSON.parse(body)
-        assert.equal activity.id, "seeme"
-        assert.equal activity.actor.displayName, "Assaf"
-
-    describe "HTML", (done)->
-      before (done)->
-        headers = { "Accept": "text/html" }
-        request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
-          { statusCode, headers, body } = response
-          done()
-
-      it "should return 200", ->
-        assert.equal statusCode, 200
-
-      it "should return an HTML document", ->
-        assert /text\/html/.test(headers['content-type'])
-        assert /<div/.test(body)
-
-    describe "any content type", (done)->
-      before (done)->
-        headers = { "Accept": "*/*" }
-        request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
-          { statusCode, headers, body } = response
-          done()
-
-      it "should return 200", ->
-        assert.equal statusCode, 200
-
-      it "should return an HTML document", ->
-        assert /text\/html/.test(headers['content-type'])
-        assert /<div/.test(body)
-
-    describe "no such activity", (done)->
-      before (done)->
-        headers = { "Accept": "*/*" }
-        request.get "http://localhost:3003/activity/nosuch", headers: headers, (_, response)->
-          { statusCode, headers, body } = response
-          done()
-
-      it "should return 404", ->
-        assert.equal statusCode, 404
-
-      it "should return an error message", ->
-        assert.equal body, "Cannot GET /activity/nosuch"
-
-    after search.teardown
+  # -- Listing activities for a day --
   
-  # Listing activities for a day
   describe "activities for a day", ->
     statusCode = body = headers = null
 
@@ -323,7 +330,37 @@ describe "activity", ->
         assert.equal activities.length, 0
 
 
-  # Deleting an activity
+  # -- Activity stream --
+  
+  describe "activities for a day", ->
+    statusCode = body = headers = null
+
+    before (done)->
+      file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
+      Async.forEach JSON.parse(file), (activity, done)->
+        Activity.create activity, done
+      , ->
+        search (es_index)->
+          es_index.refresh done
+        
+    describe "startup", (done)->
+      before (done)->
+        sse = new SSEClient("http://localhost:3003/activity/stream")
+        sse.on "status", (status, headers)->
+          assert.equal status, 200
+          console.log headers
+        sse.on "data", (id, type, data)->
+          console.log id, type, data
+        sse.on "error", ->
+          console.log arguments
+        #  done()
+
+      it "should return 200", ->
+        assert.equal statusCode, 200
+  
+
+  # -- Deleting an activity --
+  
   describe "delete", ->
     before (done)->
       params =
