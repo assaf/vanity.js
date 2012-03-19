@@ -2,7 +2,15 @@ Activity = require("../models/activity")
 
 
 server.post "/activity", (req, res, next)->
-  next()
+  try
+    id = Activity.create(req.body, (error)->
+      # TODO: proper logging
+      if error
+        console.log error
+    )
+    res.send " ", location: "/activity/#{id}", 201
+  catch error
+    res.send error.message, 400
 
 
 server.get "/activity", (req, res, next)->

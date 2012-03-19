@@ -1,57 +1,138 @@
-{ setup } = require("./helper")
 assert    = require("assert")
-Activity  = require("../models/activity")
 request   = require("request")
+Activity  = require("../models/activity")
+search    = require("../config/search")
+{ setup } = require("./helper")
 
 
 describe "activity", ->
   before setup
 
+  # Getting an activity
+  describe "post", ->
+    statusCode = body = headers = null
+    params =
+      id:     "posted"
+      actor:  { displayName: "Assaf" }
+      verb:   "posted"
+
+    describe "valid", ->
+      before (done)->
+        request.post "http://localhost:3003/activity", json: params, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should create activity", (done)->
+        setTimeout ->
+          Activity.get "posted", (error, activity)->
+            assert activity
+            assert.equal activity.actor.displayName, "Assaf"
+            done()
+        , 100
+
+      it "should return 201", ->
+        assert.equal statusCode, 201
+
+      it "should return location of new activity", ->
+        assert.equal headers["location"], "/activity/posted"
+
+      it "should return empty document", ->
+        assert.equal body, " "
+
+    describe "not valid", ->
+      before (done)->
+        request.post "http://localhost:3003/activity", json: { }, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return 400", ->
+        assert.equal statusCode, 400
+
+      it "should return error message", ->
+        assert.equal body, "Activity requires verb"
+
+    describe "no body", ->
+      before (done)->
+        request.post "http://localhost:3003/activity", (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return 400", ->
+        assert.equal statusCode, 400
+
+      it "should return error message", ->
+        assert.equal body, "Activity requires verb"
+
 
   # Getting an activity
   describe "get", ->
+    statusCode = body = headers = null
+
     before (done)->
       params =
-        id:     "deleteme"
+        id:     "seeme"
         actor:  { displayName: "Assaf" }
         verb:   "posted"
       Activity.create id: "seeme", actor: { displayName: "Assaf" }, verb: "tested", done
 
-    it "should return 200", (done)->
-      request.get "http://localhost:3003/activity/seeme", (_, response)->
-        assert.equal response.statusCode, 200
-        done()
+    describe "JSON", (done)->
+      before (done)->
+        headers = { "Accept": "application/json" }
+        request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
 
-    it "should return JSON object for activity", (done)->
-      headers = { "Accept": "application/json" }
-      request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response, body)->
-        assert.equal response.statusCode, 200
-        assert /application\/json/.test(response.headers['content-type'])
+      it "should return 200", ->
+        assert.equal statusCode, 200
+
+      it "should return a JSON document", ->
+        assert /application\/json/.test(headers['content-type'])
+
+      it "should return the activity", ->
         activity = JSON.parse(body)
+        assert.equal activity.id, "seeme"
         assert.equal activity.actor.displayName, "Assaf"
-        done()
 
-    it "should return HTML view of activity for text/html", (done)->
-      headers = { "Accept": "text/html" }
-      request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response, body)->
-        assert.equal response.statusCode, 200
-        assert /text\/html/.test(response.headers['content-type'])
+    describe "HTML", (done)->
+      before (done)->
+        headers = { "Accept": "text/html" }
+        request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return 200", ->
+        assert.equal statusCode, 200
+
+      it "should return an HTML document", ->
+        assert /text\/html/.test(headers['content-type'])
         assert /<div/.test(body)
-        done()
 
-    it "should return HTML view of activity for */*", (done)->
-      headers = { "Accept": "*/*" }
-      request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response, body)->
-        assert.equal response.statusCode, 200
-        assert /text\/html/.test(response.headers['content-type'])
+    describe "any content type", (done)->
+      before (done)->
+        headers = { "Accept": "*/*" }
+        request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return 200", ->
+        assert.equal statusCode, 200
+
+      it "should return an HTML document", ->
+        assert /text\/html/.test(headers['content-type'])
         assert /<div/.test(body)
-        done()
 
-    it "should return 404 if activity doesn't exist", (done)->
-      request.get "http://localhost:3003/activity/nosuch", (_, response)->
-        assert.equal response.statusCode, 404
-        assert.equal response.body, "Cannot GET /activity/nosuch"
-        done()
+    describe "no such activity", (done)->
+      before (done)->
+        headers = { "Accept": "*/*" }
+        request.get "http://localhost:3003/activity/nosuch", headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return 404", ->
+        assert.equal statusCode, 404
+
+      it "should return an error message", ->
+        assert.equal body, "Cannot GET /activity/nosuch"
   
 
   # Deleting an activity

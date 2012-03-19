@@ -23,13 +23,15 @@ class Activity
   #
   # If no activity identifier is specified, one will be created based on the various activity fields.  If successfuly,
   # the callback includes the activity identifier.
+  #
+  # Returns the activity identifier immediately.  Passes error and id to callback after storing activity.
+  #
+  # If required fields are missing, throws an error.  Make sure to catch it, callback will not be called.
   @create: ({ id, published, actor, verb, object, location }, callback)->
     unless verb
-      callback new Error("Activity requires verb")
-      return
+      throw new Error("Activity requires verb")
     unless actor && (actor.displayName || actor.id)
-      callback new Error("Activity requires actor")
-      return
+      throw new Error("Activity requires actor")
     # Each activity has a timestamp, default to now.
     published ||= new Date()
 
@@ -70,8 +72,6 @@ class Activity
         id:     id
       search (es_index)->
         es_index.index "activity", doc, options, (error)->
-          # TODO: proper logging comes here
-          if error then console.error error
           callback error, id
 
     # If location provided we need some geocoding action.
@@ -87,6 +87,7 @@ class Activity
     else
       store()
 
+    return id
 
 
   # Returns activity by id (null if not found).

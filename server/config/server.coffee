@@ -6,6 +6,7 @@ Activity  = require("../models/activity")
 server = Express.createServer()
 server.set "views", "#{__dirname}/../views"
 server.set "view engine", "eco"
+server.use Express.bodyParser()
 
 
 global.server = server
