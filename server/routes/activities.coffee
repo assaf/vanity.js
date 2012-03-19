@@ -21,30 +21,41 @@ server.post "/activity", (req, res, next)->
     res.send error.message, 400
 
 
+# Retrieve recent activities
 server.get "/activity", (req, res, next)->
-  params =
-    query:  req.query.query
+  params = {}
+  # Only add query fields that are present.  We use params object to construct query string for next/prev navigation
+  # links, so don't include junk in there.
+  params.query = req.query.query if req.query.query
   params.limit = parseInt(req.query.limit, 10) if req.query.limit
   params.offset = parseInt(req.query.offset, 10) if req.query.offset
   params.start = req.query.start if req.query.start
   params.end = req.query.end if req.query.end
 
-  Activity.search params, (error, result)->
-    console.log error if error
-    { total, hits } = result
-    activities = hits.map((a)-> a._source )
+  Activity.search params, (error, results)->
+    if error
+      console.error error
+      res.send "Cannot execute query", 400
+      return
+
     result =
-      total: total
-      activities: activities
-    next_offset = (params.offset || 0) + activities.length
-    if total > next_offset
+      total: results.total
+      activities: results.activities
+
+    # We don't know what limit was applied, but we do know if there are more results beyond what we got, in which case
+    # we include link to the next offset.
+    next_offset = (params.offset || 0) + results.limit
+    if results.total > next_offset
       next = Object.clone(params)
       next.offset = next_offset
       result.next = "/activity?" + QS.stringify(next)
+
+    # We know if there are more results is we navigate back.  We do our best to guess the limit, and make sure offset is not 0.
     if params.offset > 0
       prev = Object.clone(params)
-      prev.offset = Math.max(params.offset - params.limit, 0)
+      prev.offset = Math.max(params.offset - results.limit, 0)
       result.prev = "/activity?" + QS.stringify(prev)
+
     res.send result, 200
   
 

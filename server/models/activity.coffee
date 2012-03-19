@@ -99,17 +99,27 @@ class Activity
   # Returns all activities that meet the search criteria.
   #
   # Options are:
-  # query - Query string
-  # limit - Only return that many results
+  # query  - Query string
+  # limit  - Only return that many results (up to 250)
+  # offset - Return results starting from this offset
+  # start  - Activities published at/after the start time
+  # end    - Activities published up to (excluding) the end time
+  #
+  # Callback receive error followed by object with:
+  # total      - Total number of results matching query
+  # limit      - Actual limit applied to query
+  # activities - Activities matching query (up to limit)
   @search: (options, callback)->
     params =
       query:
         query_string:
           query: options.query || "*"
       from:   options.offset || 0
-      size:   options.limit || 50
+      size:   Math.min(options.limit, 250)
       sort:   { published: "desc" }
-
+    # Only if specified
+    params.from = options.offset if options.offset
+    # Add filter for start/end time, if specified
     if options.start || options.end
       range =
         gte: options.start
@@ -120,8 +130,17 @@ class Activity
           filter:
             range:
               published: range
+    # And ... go!
     search (es_index)->
-      es_index.search params, callback
+      es_index.search params, (error, results)->
+        if error
+          callback error
+        else
+          activities = results.hits.map((a)-> a._source )
+          callback null,
+            total: results.total
+            limit: params.size
+            activities: activities
 
 
   # Deletes activity by id.

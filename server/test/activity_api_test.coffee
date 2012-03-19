@@ -144,7 +144,7 @@ describe "activity", ->
 
       it "should return link to next result set", ->
         { next } = JSON.parse(body)
-        assert.equal next, "/activity?query=&limit=2&offset=2"
+        assert.equal next, "/activity?limit=2&offset=2"
 
       it "should not return link to previous result set", ->
         { prev } = JSON.parse(body)
@@ -164,11 +164,11 @@ describe "activity", ->
 
       it "should return link to next result set", ->
         { next } = JSON.parse(body)
-        assert.equal next, "/activity?query=&limit=1&offset=2"
+        assert.equal next, "/activity?limit=1&offset=2"
 
       it "should return link to previous result set", ->
         { prev } = JSON.parse(body)
-        assert.equal prev, "/activity?query=&limit=1&offset=0"
+        assert.equal prev, "/activity?limit=1&offset=0"
 
     describe "start", (done)->
       before (done)->
