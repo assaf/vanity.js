@@ -7,6 +7,7 @@ server = Express.createServer()
 server.set "views", "#{__dirname}/../views"
 server.set "view engine", "eco"
 server.use Express.bodyParser()
+server.use Express.query()
 
 
 global.server = server

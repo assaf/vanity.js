@@ -21,7 +21,7 @@ server.post "/activity", (req, res, next)->
 
 
 server.get "/activity", (req, res, next)->
-  Activity.search "*", (error, result)->
+  Activity.search req.query.query, (error, result)->
     console.log error if error
     { total, hits } = result
     activities = hits.map((a)-> a._source )

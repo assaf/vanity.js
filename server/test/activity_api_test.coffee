@@ -108,6 +108,19 @@ describe "activity", ->
         ids = activities.map((a)-> a.id)
         assert.deepEqual ids, ["3", "2", "1"]
 
+    describe "query", (done)->
+      before (done)->
+        headers = { "Accept": "application/json" }
+        request.get "http://localhost:3003/activity?query=NOT+assaf", headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return only matching activities", ->
+        { activities } = JSON.parse(body)
+        assert.equal activities.length, 2
+        assert.equal activities[0].actor.displayName, "David"
+        assert.equal activities[1].actor.displayName, "Jerome"
+
     after search.teardown
 
 

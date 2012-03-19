@@ -99,7 +99,9 @@ class Activity
   # Returns all activities that meet the search criteria.
   @search: (query, callback)->
     params =
-      query:  query
+      query:
+        query_string:
+          query: query || "*"
       from:   0
       size:   10
       sort:   { published: "desc" }
