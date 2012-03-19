@@ -121,6 +121,55 @@ describe "activity", ->
         assert.equal activities[0].actor.displayName, "David"
         assert.equal activities[1].actor.displayName, "Jerome"
 
+      it "should not return link to next result set", ->
+        { next } = JSON.parse(body)
+        assert !next
+
+      it "should not return link to previous result set", ->
+        { prev } = JSON.parse(body)
+        assert !prev
+
+    describe "limit", (done)->
+      before (done)->
+        headers = { "Accept": "application/json" }
+        request.get "http://localhost:3003/activity?limit=2", headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return only N most recent activities", ->
+        { activities } = JSON.parse(body)
+        assert.equal activities.length, 2
+        assert.equal activities[0].actor.displayName, "David"
+        assert.equal activities[1].actor.displayName, "Jerome"
+
+      it "should return link to next result set", ->
+        { next } = JSON.parse(body)
+        assert.equal next, "/activity?query=&limit=2&offset=2"
+
+      it "should not return link to previous result set", ->
+        { prev } = JSON.parse(body)
+        assert !prev
+
+    describe "offset", (done)->
+      before (done)->
+        headers = { "Accept": "application/json" }
+        request.get "http://localhost:3003/activity?offset=1&limit=1", headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return only N most recent activities, from offset", ->
+        { activities } = JSON.parse(body)
+        assert.equal activities.length, 1
+        assert.equal activities[0].actor.displayName, "Jerome"
+
+      it "should return link to next result set", ->
+        { next } = JSON.parse(body)
+        assert.equal next, "/activity?query=&limit=1&offset=2"
+
+      it "should return link to previous result set", ->
+        { prev } = JSON.parse(body)
+        assert.equal prev, "/activity?query=&limit=1&offset=0"
+
     after search.teardown
 
 

@@ -1,3 +1,4 @@
+QS       = require("querystring")
 Activity = require("../models/activity")
 
 
@@ -21,11 +22,26 @@ server.post "/activity", (req, res, next)->
 
 
 server.get "/activity", (req, res, next)->
-  Activity.search req.query.query, (error, result)->
+  params =
+    query:  req.query.query
+    limit:  parseInt(req.query.limit, 10) || 50
+    offset: parseInt(req.query.offset, 10) || 0
+  Activity.search params, (error, result)->
     console.log error if error
     { total, hits } = result
     activities = hits.map((a)-> a._source )
-    res.send total: total, activities: activities, 200
+    result =
+      total: total
+      activities: activities
+    if total > params.limit + params.offset
+      next = Object.clone(params)
+      next.offset = params.offset + params.limit
+      result.next = "/activity?" + QS.stringify(next)
+    if params.offset > 0
+      prev = Object.clone(params)
+      prev.offset = Math.max(params.offset - params.limit, 0)
+      result.prev = "/activity?" + QS.stringify(prev)
+    res.send result, 200
   
 
 server.get "/activity/day/:date", (req, res, next)->

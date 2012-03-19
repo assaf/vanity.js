@@ -1,3 +1,5 @@
+require "sugar"
+
 config =
   elasticsearch:
     indexname:  "vanity"

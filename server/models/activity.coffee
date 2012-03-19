@@ -97,13 +97,17 @@ class Activity
 
 
   # Returns all activities that meet the search criteria.
-  @search: (query, callback)->
+  #
+  # Options are:
+  # query - Query string
+  # limit - Only return that many results
+  @search: (options, callback)->
     params =
       query:
         query_string:
-          query: query || "*"
-      from:   0
-      size:   10
+          query: options.query || "*"
+      from:   options.offset || 0
+      size:   options.limit || 50
       sort:   { published: "desc" }
     search (es_index)->
       es_index.search params, callback
