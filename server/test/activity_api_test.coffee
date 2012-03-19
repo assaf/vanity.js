@@ -282,6 +282,46 @@ describe "activity", ->
 
     after search.teardown
   
+  # Listing activities for a day
+  describe "activities for a day", ->
+    statusCode = body = headers = null
+
+    before (done)->
+      file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
+      Async.forEach JSON.parse(file), (activity, done)->
+        Activity.create activity, done
+      , ->
+        search (es_index)->
+          es_index.refresh done
+        
+    describe "with activity", (done)->
+      before (done)->
+        headers = { "Accept": "application/json" }
+        request.get "http://localhost:3003/activity/day/2011-03-18", headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return 200", ->
+        assert.equal statusCode, 200
+
+      it "should return all activities", ->
+        { activities } = JSON.parse(body)
+        assert.equal activities.length, 0
+
+    describe "with no activity", (done)->
+      before (done)->
+        headers = { "Accept": "application/json" }
+        request.get "http://localhost:3003/activity/day/2011-03-17", headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return 200", ->
+        assert.equal statusCode, 200
+
+      it "should return no activities", ->
+        { activities } = JSON.parse(body)
+        assert.equal activities.length, 0
+
 
   # Deleting an activity
   describe "delete", ->

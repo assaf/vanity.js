@@ -22,15 +22,31 @@ server.post "/activity", (req, res, next)->
 
 
 # Retrieve recent activities
-server.get "/activity", (req, res, next)->
+#
+# Supports the following query parameters:
+# query   - Query string
+# limit   - How many results to return (up to 250)
+# offset  - Start at this offset (default to 0)
+# start   - Returns activities published at/after this time (ISO8601)
+# end     - Returns activities published up (excluding) this time (ISO8601)
+#
+# Returns a JSON document with the following properties:
+# total      - Total number of activities that match this query
+# activities - Activities that match this query (from offset, up to limit)
+# next       - Path for requesting the next result set (if not last)
+# prev       - Path for requesting the previous result set (if not first
+server.get "/activity", (req, res)->
+  searchAndRender req.query, res
+
+searchAndRender = (query, res)->
   params = {}
   # Only add query fields that are present.  We use params object to construct query string for next/prev navigation
   # links, so don't include junk in there.
-  params.query = req.query.query if req.query.query
-  params.limit = parseInt(req.query.limit, 10) if req.query.limit
-  params.offset = parseInt(req.query.offset, 10) if req.query.offset
-  params.start = req.query.start if req.query.start
-  params.end = req.query.end if req.query.end
+  params.query = query.query if query.query
+  params.limit = parseInt(query.limit, 10) if query.limit
+  params.offset = parseInt(query.offset, 10) if query.offset
+  params.start = query.start if query.start
+  params.end = query.end if query.end
 
   Activity.search params, (error, results)->
     if error
@@ -59,8 +75,14 @@ server.get "/activity", (req, res, next)->
     res.send result, 200
   
 
-server.get "/activity/day/:date", (req, res, next)->
-  next()
+# Retrieve activities for a given date.  Basically sets the start/end query parameters based on the date in the path.
+# All other query parameters (query, limit, etc) supported.
+server.get "/activity/day/:date", (req, res)->
+  params = req.query
+  date = new Date(req.params.date).beginningOfDay()
+  req.query.start = date.format(Date.ISO8601_DATE)
+  req.query.end = date.addDays(1).format(Date.ISO8601_DATE)
+  searchAndRender params, res
 
 
 # Retrieve single activity, either as JSON or HTML.
