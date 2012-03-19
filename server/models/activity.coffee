@@ -96,6 +96,17 @@ class Activity
       es_index.get id, ignoreMissing: true, callback
 
 
+  # Returns all activities that meet the search criteria.
+  @search: (query, callback)->
+    params =
+      query:  query
+      from:   0
+      size:   10
+      sort:   { published: "desc" }
+    search (es_index)->
+      es_index.search params, callback
+
+
   # Deletes activity by id.
   @delete: (id, callback)->
     search (es_index)->

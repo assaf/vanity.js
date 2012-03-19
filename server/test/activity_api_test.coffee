@@ -1,4 +1,5 @@
 assert    = require("assert")
+Async     = require("async")
 request   = require("request")
 Activity  = require("../models/activity")
 search    = require("../config/search")
@@ -8,7 +9,8 @@ search    = require("../config/search")
 describe "activity", ->
   before setup
 
-  # Getting an activity
+
+  # Creating an activity
   describe "post", ->
     statusCode = body = headers = null
     params =
@@ -63,9 +65,54 @@ describe "activity", ->
       it "should return error message", ->
         assert.equal body, "Activity requires verb"
 
+    after search.teardown
+
+
+  # Listing all activities
+  describe "list activities", ->
+    statusCode = body = headers = null
+
+    before (done)->
+      file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
+      Async.forEach JSON.parse(file), (activity, done)->
+        Activity.create activity, done
+      , ->
+        search (es_index)->
+          es_index.refresh done
+        
+
+    describe "JSON", (done)->
+      before (done)->
+        headers = { "Accept": "application/json" }
+        request.get "http://localhost:3003/activity", headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return 200", ->
+        assert.equal statusCode, 200
+
+      it "should return a JSON document", ->
+        assert /application\/json/.test(headers['content-type'])
+
+      it "should return results count", ->
+        { total } = JSON.parse(body)
+        assert.equal total, 3
+
+      it "should return activities", ->
+        { activities } = JSON.parse(body)
+        for activity in activities
+          assert activity.actor?.displayName
+
+      it "should return most recent activity first", ->
+        { activities } = JSON.parse(body)
+        ids = activities.map((a)-> a.id)
+        assert.deepEqual ids, ["3", "2", "1"]
+
+    after search.teardown
+
 
   # Getting an activity
-  describe "get", ->
+  describe "get activity", ->
     statusCode = body = headers = null
 
     before (done)->
@@ -133,6 +180,8 @@ describe "activity", ->
 
       it "should return an error message", ->
         assert.equal body, "Cannot GET /activity/nosuch"
+
+    after search.teardown
   
 
   # Deleting an activity
@@ -165,3 +214,7 @@ describe "activity", ->
       Activity.get "keepme", (error, doc)->
         assert doc && doc.actor
         done()
+
+    after search.teardown
+
+

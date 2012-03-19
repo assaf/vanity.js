@@ -1,6 +1,13 @@
 Activity = require("../models/activity")
 
 
+# Create a new activity.
+#
+# If request is a valid activity, returns 201 and Location header.
+#
+# Otherwise, returns 400 and error message.
+#
+# Does not wait for activity to be indexed.
 server.post "/activity", (req, res, next)->
   try
     id = Activity.create(req.body, (error)->
@@ -14,8 +21,12 @@ server.post "/activity", (req, res, next)->
 
 
 server.get "/activity", (req, res, next)->
-  next()
-
+  Activity.search "*", (error, result)->
+    console.log error if error
+    { total, hits } = result
+    activities = hits.map((a)-> a._source )
+    res.send total: total, activities: activities, 200
+  
 
 server.get "/activity/day/:date", (req, res, next)->
   next()

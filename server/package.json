@@ -10,6 +10,7 @@
     "node": ">= 0.6.0"
   },
   "dependencies": {
+    "async":            "~0.1.18",
     "coffee-script":    "~1.2",
     "connect":          "~1.8",
     "eco":              "~1.1.0",

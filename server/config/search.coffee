@@ -135,4 +135,14 @@ search = (fn)->
   return
 
 
+# This is used during testing to delete index between tests.
+search.teardown = (callback)->
+  if es_index
+    es_index.deleteIndex ->
+      es_index = null
+      callback()
+  else
+    callback()
+
+
 module.exports = search
