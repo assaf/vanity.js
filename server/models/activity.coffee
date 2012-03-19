@@ -109,6 +109,17 @@ class Activity
       from:   options.offset || 0
       size:   options.limit || 50
       sort:   { published: "desc" }
+
+    if options.start || options.end
+      range =
+        gte: options.start
+        lt:  options.end
+      params.query =
+        filtered:
+          query: params.query
+          filter:
+            range:
+              published: range
     search (es_index)->
       es_index.search params, callback
 

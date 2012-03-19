@@ -24,8 +24,11 @@ server.post "/activity", (req, res, next)->
 server.get "/activity", (req, res, next)->
   params =
     query:  req.query.query
-    limit:  parseInt(req.query.limit, 10) || 50
-    offset: parseInt(req.query.offset, 10) || 0
+  params.limit = parseInt(req.query.limit, 10) if req.query.limit
+  params.offset = parseInt(req.query.offset, 10) if req.query.offset
+  params.start = req.query.start if req.query.start
+  params.end = req.query.end if req.query.end
+
   Activity.search params, (error, result)->
     console.log error if error
     { total, hits } = result
@@ -33,9 +36,10 @@ server.get "/activity", (req, res, next)->
     result =
       total: total
       activities: activities
-    if total > params.limit + params.offset
+    next_offset = (params.offset || 0) + activities.length
+    if total > next_offset
       next = Object.clone(params)
-      next.offset = params.offset + params.limit
+      next.offset = next_offset
       result.next = "/activity?" + QS.stringify(next)
     if params.offset > 0
       prev = Object.clone(params)

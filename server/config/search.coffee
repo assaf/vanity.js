@@ -68,6 +68,7 @@ MAPPINGS =
         lat_lon: true
       published:
         type: "date"
+        
 
 
 # Eventually set to Elastical.Index object.
