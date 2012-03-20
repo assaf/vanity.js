@@ -73,6 +73,7 @@ server.get "/activity", (req, res)->
     res.send result, 200
   
 
+# Server-sent events activity stream.
 server.get "/activity/stream", (req, res, next)->
   res.writeHead 200,
     "Content-Type":   "text/event-stream; charset=utf-8"

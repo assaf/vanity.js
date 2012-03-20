@@ -82,9 +82,9 @@ class Activity
           doc.location = result
         else
           doc.location = { displayName: location }
-        @_store doc, callback
+        Activity._store doc, callback
     else
-      @_store doc, callback
+      Activity._store doc, callback
     # Return known identifier, not activity.
     return id
 

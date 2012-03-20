@@ -2,8 +2,9 @@
   "version": "0.1.0",
   "description": "Activity stream server.",
   "author": "Assaf Arkin <assaf@labnotes.org> (http://labnotes.org/)",
-  "main": "lib/vanity",
+  "main": "index",
   "scripts": {
+    "start":  "coffee index.coffee",
     "test":   "mocha"
   },
   "engines": {

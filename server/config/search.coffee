@@ -128,7 +128,7 @@ search = (fn)->
       createIndex()
   else
     # Check if index already exists before trying to create new one.
-    index.exists index_name, (error, exists)->
+    index.exists (error, exists)->
       if exists
         complete()
       else
