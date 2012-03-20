@@ -3,9 +3,8 @@
 # See http://dev.w3.org/html5/eventsource/
 
 
-{ EventEmitter }  = require("events")
-Net               = require("net")
-URL               = require("url")
+Net = require("net")
+URL = require("url")
 
 
 class MessageEvent
@@ -13,14 +12,13 @@ class MessageEvent
 
 # W3C DOM EventSource
 class EventSource
-  @CONNECTING: 0
-  @OPEN: 1
-  @CLOSED: 2
+  @CONNECTING:  0
+  @OPEN:        1
+  @CLOSED:      2
 
   constructor: (@url)->
     @readyState = EventSource.CONNECTING
     @_lastEventId = null
-    @_reconnect = 500
     @_handlers = {}
     @_connect()
 
@@ -55,7 +53,7 @@ class EventSource
   _connect: ->
     # Open connection to Web server and send request.
     url = URL.parse(@url)
-    client = Net.connect(url.port, url.post)
+    client = Net.connect(url.port, url.hostname)
     client.setNoDelay(true)
     client.on "connect", =>
       @_client = client
@@ -64,7 +62,8 @@ class EventSource
       request = "GET #{url.path} HTTP/1.1\r\nHost: #{url.hostname}\r\nAccept: text/event-stream\r\n"
       if @_lastEventId
         request += "Last-Event-ID: #{@_lastEventId}\r\n"
-      client.write request + "\r\n"
+      client.write request
+      client.write "\r\n"
 
       # Process the response.  We expect this to be the header, but may also hold some body chunks.
       client.once "data", (chunk)=>

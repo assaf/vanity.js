@@ -330,7 +330,7 @@ describe "activity", ->
 
 
   # -- Activity stream --
-  
+ 
   describe "activities stream", ->
 
     # Collect events sent to event source.
