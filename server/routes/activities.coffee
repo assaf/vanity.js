@@ -1,4 +1,5 @@
 QS       = require("querystring")
+Express  = require("express")
 Activity = require("../models/activity")
 server   = require("../config/server")
 
@@ -55,7 +56,7 @@ server.get "/activity", (req, res)->
     result =
       query: params.query || "*"
       total: results.total
-      activities: results.activities
+      activities: results.activities.map((a)-> enhance(a))
 
     # We don't know what limit was applied, but we do know if there are more results beyond what we got, in which case
     # we include link to the next offset.
@@ -87,7 +88,8 @@ server.get "/activity/stream", (req, res, next)->
 
   # Send each activity that gets created.
   send = (activity)->
-    res.write "event: activity\nid: #{activity.id}\ndata: #{JSON.stringify(activity)}\n\n"
+    json = JSON.stringify(enhance(activity))
+    res.write "event: activity\nid: #{activity.id}\ndata: #{json}\n\n"
   Activity.addListener "activity", send
 
   # Stop listener when browser disconnects.
@@ -103,10 +105,9 @@ server.get "/activity/:id", (req, res, next)->
     else if activity
       if req.accepts("html")
         res.local "layout", (req.headers["x-requested-with"] != "XMLHttpRequest")
-        activity.url = "/activity/#{activity.id}"
-        res.render "activity", activity
+        res.render "activity", enhance(activity)
       else
-        res.send activity, 200
+        res.send enhance(activity), 200
     else
       next()
 
@@ -118,3 +119,19 @@ server.del "/activity/:id", (req, res, next)->
       next(error)
     else
       res.send 204
+
+
+# Adds url, title and content to activity and returns it.
+enhance = (activity)->
+  activity.url = "/activity/#{activity.id}"
+
+  title = "#{activity.actor.displayName} #{activity.verb}"
+  if activity.object?.displayName
+    title += " #{activity.object.displayName}"
+  activity.title = "#{title}."
+
+  unless Activity.template
+    Activity.template = Express.view.compile("_activity.eco", {}, null, root: server.settings.views).fn
+  activity.content = Activity.template(activity).replace(/\s+/g, " ")
+  return activity
+

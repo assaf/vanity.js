@@ -1,0 +1,21 @@
+<div id="activity-<%= @id %>" class="activity">
+  <span class="actor">
+    <% if @actor.url : %><a href="<%= @actor.url %>"><% end %>
+      <% if @actor.image && @actor.image.url : %><img src="<%= @actor.image.url %>" class="avatar"><% end %>
+      <span class="name"><%= @actor.displayName %></span>
+    <% if @actor.url : %></a"></a><% end %>
+  </span>
+  <span class="verb"><%= @verb %></span>
+  <% if @object : %>
+    <span class="object">
+      <% if @object.url : %>
+        <a href="<%= @object.url %>"><%= @object.displayName %></a>
+      <% else: %>
+        <%= @object.displayName %>
+      <% end %>
+    </span>
+    <% if @object.image : %><a class="media image" href="<%= @object.url || @object.image.url %>"><img src="<%= @object.image.url %>"></a><% end %>
+  <% end %>
+  <span class="timestamp"><%= new Date(@published).toLocaleString() %></span>
+  <% if @location && @location.displayName: %><span class="location">From <%= @location.displayName %></span><% end %>
+</div>

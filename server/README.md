@@ -2,13 +2,14 @@
 
 Activities are represented as JSON objects with the following properties:
 
-* `id` - Universally unique identifier.
-* `actor` - Actor of this activity (required).
-* `verb` - The activity as a verb (e.g. "uploaded file", required)
-* `object` - The object of this activity (e.g. the uploaded file).
-* `url` - Relative path to the HTML page of this activity.
-* `content` - JSON/HTML presentation of this activity.
-* `published` - Timestamp when activity was published (ISO8601).
+* `id`        - Universally unique identifier.
+* `actor`     - Actor of this activity (required).
+* `verb`      - The activity as a verb (e.g. "uploaded file", required)
+* `object`    - The object of this activity (e.g. the uploaded file).
+* `url`       - Relative path to the HTML page of this activity (read only).
+* `title`     - Short JSON/HTML presentation of this activity (read only).
+* `content`   - Detailed JSON/HTML presentation of this activity (read only).
+* `published` - Timestamp when activity was published (ISO3339).
 
 Each activity must have a universally unique identifier.  If you attempt to create two activities with the same
 identifier, only the first will be stored.  Use a source that provides unique identifiers, such as GUID or UUID.
@@ -63,8 +64,8 @@ You can use the following query parameters:
 * `query` - Free form query on any of the activity fields
 * `limit` - Limit number of activities to return (maximum 250)
 * `offset` - Start returning activities from this offset (default 0)
-* `start` - Returns activities published at/after this time (ISO8601)
-* `end` - Returns activities published before (not including) this time (ISO8601)
+* `start` - Returns activities published at/after this time (ISO3339)
+* `end` - Returns activities published before (not including) this time (ISO3339)
 
 For example, to retrieve all the activities performed by David that do not include the verb "posted", during the month
 of March:

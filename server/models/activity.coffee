@@ -16,7 +16,7 @@ geocode           = require("../lib/geocode")
 events = new EventEmitter()
 
 
-class Activity
+Activity =
 
   # -- Creating and deleting --
 
@@ -35,7 +35,7 @@ class Activity
   # Returns the activity identifier immediately.  Passes error and id to callback after storing activity.
   #
   # If required fields are missing, throws an error.  Make sure to catch it, callback will not be called.
-  @create: ({ id, published, actor, verb, object, location }, callback)->
+  create: ({ id, published, actor, verb, object, location }, callback)->
     unless verb
       throw new Error("Activity requires verb")
     unless actor && (actor.displayName || actor.id)
@@ -88,16 +88,8 @@ class Activity
     # Return known identifier, not activity.
     return id
 
-  # Return HTML content for activity.
-  @_render: (doc)->
-    unless Activity.template
-      Activity.template = Express.view.compile("activity.eco", {}, null, root: server.settings.views).fn
-    return Activity.template(doc).replace(/\s+/g, " ")
-
   # Store valid activity in ES.
-  @_store: (doc, callback)->
-    # Do the rendering here, once have all the properties (e.g. location)
-    doc.content ||= @_render(doc)
+  _store: (doc, callback)->
     options =
       create: false
       id:     doc.id
@@ -112,7 +104,7 @@ class Activity
 
 
   # Deletes activity by id.
-  @delete: (id, callback)->
+  delete: (id, callback)->
     search (es_index)->
       es_index.delete "activity", id, ignoreMissing: true, callback
 
@@ -121,7 +113,7 @@ class Activity
 
 
   # Returns activity by id (null if not found).
-  @get: (id, callback)->
+  get: (id, callback)->
     search (es_index)->
       es_index.get id, ignoreMissing: true, (error, activity)->
         if activity
@@ -142,7 +134,7 @@ class Activity
   # total      - Total number of results matching query
   # limit      - Actual limit applied to query
   # activities - Activities matching query (up to limit)
-  @search: (options, callback)->
+  search: (options, callback)->
     params =
       query:
         query_string:
@@ -181,23 +173,23 @@ class Activity
 
   # -- Activity stream events --
 
-  @emit: (event, data)->
+  emit: (event, data)->
     events.emit event, data
 
   # Add event listener.
-  @on: (event, listener)->
+  on: (event, listener)->
     Activity.addListener event, listener
 
   # Add event listener.
-  @once: (event, listener)->
+  once: (event, listener)->
     events.once event, listener
 
   # Add event listener.
-  @addListener: (event, listener)->
+  addListener: (event, listener)->
     events.addListener event, listener
 
   # Remove event listener.
-  @removeListener: (event, listener)->
+  removeListener: (event, listener)->
     events.removeListener event, listener
 
 

@@ -35,14 +35,18 @@ MAPPINGS =
         index: "not_analyzed"
       actor:
         type: "object"
+        path: "just_name"
         properties:
           id:
             type: "string"
             index: "not_analyzed"
+            index_name: "actor_id"
           displayName:
             type: "string"
+            index_name: "actor"
           url:
             type: "string"
+            index_name: "actor_url"
           image:
             type: "object"
             index: "no"
@@ -50,14 +54,18 @@ MAPPINGS =
         type: "string"
       object:
         type: "object"
+        path: "just_name"
         properties:
           id:
             type: "string"
             index: "not_analyzed"
+            index_name: "object_id"
           displayName:
             type: "string"
+            index_name: "object"
           url:
             type: "string"
+            index_name: "object_url"
           image:
             type: "object"
             index: "no"
@@ -66,11 +74,12 @@ MAPPINGS =
       location:
         type: "geo_point"
         lat_lon: true
+        properties:
+          displayName:
+            type: "string"
+            index_name: "location"
       published:
         type: "date"
-      content:
-        type: "string"
-        index: "no"
 
 
 # Eventually set to Elastical.Index object.

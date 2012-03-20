@@ -110,6 +110,10 @@ describe "activity", ->
         activity = JSON.parse(body)
         assert.equal activity.url, "/activity/fe936972"
 
+      it "should include title", ->
+        activity = JSON.parse(body)
+        assert.equal activity.title, "Assaf posted."
+
 
     describe "HTML", ->
 
@@ -235,6 +239,11 @@ describe "activity", ->
         { activities } = JSON.parse(body)
         for activity in activities
           assert /^\/activity\/[0-9a-f]{8}$/.test(activity.url)
+
+      it "should include title", ->
+        { activities } = JSON.parse(body)
+        for activity in activities
+          assert /(Assaf|David|Jerome) (started|continued|completed)\./.test(activity.title)
 
 
     describe "query", ->
@@ -368,6 +377,13 @@ describe "activity", ->
       # Can't guarantee order of events, must sort
       names = events.map((event)-> JSON.parse(event.data).actor.displayName).sort()
       assert.deepEqual names, ["Assaf", "David", "Jerome"]
+
+    it "events should include url, title and content", ->
+      for event in events
+        activity = JSON.parse(event.data)
+        assert /\/activity\//.test(activity.url)
+        assert /(Assaf|David|Jerome) (started|continued|completed)\./.test(activity.title)
+        assert /<div/.test(activity.content)
 
     after search.teardown
   
