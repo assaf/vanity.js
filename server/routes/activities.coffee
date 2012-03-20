@@ -30,6 +30,7 @@ server.get "/activity/:id", (req, res, next)->
     else if activity
       if req.accepts("html")
         res.local "layout", (req.headers["x-requested-with"] != "XMLHttpRequest")
+        activity.url = "/activity/#{activity.id}"
         res.render "activity", activity
       else
         res.send activity, 200
@@ -66,8 +67,7 @@ server.get "/activity", (req, res)->
       console.error error
       res.send "Cannot execute query", 400
       return
-
-      
+     
     result =
       total: results.total
       activities: results.activities

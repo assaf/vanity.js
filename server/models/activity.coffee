@@ -85,15 +85,18 @@ class Activity
         @_store doc, callback
     else
       @_store doc, callback
-
+    # Return known identifier, not activity.
     return id
 
+  # Return HTML content for activity.
   @_render: (doc)->
     unless Activity.template
       Activity.template = Express.view.compile("activity.eco", {}, null, root: server.settings.views).fn
     return Activity.template(doc).replace(/\s+/g, " ")
 
+  # Store valid activity in ES.
   @_store: (doc, callback)->
+    # Do the rendering here, once have all the properties (e.g. location)
     doc.content ||= @_render(doc)
     options =
       create: false
@@ -120,7 +123,10 @@ class Activity
   # Returns activity by id (null if not found).
   @get: (id, callback)->
     search (es_index)->
-      es_index.get id, ignoreMissing: true, callback
+      es_index.get id, ignoreMissing: true, (error, activity)->
+        if activity
+          activity.url = "/activity/#{activity.id}"
+        callback error, activity
 
 
   # Returns all activities that meet the search criteria.
@@ -163,7 +169,10 @@ class Activity
         if error
           callback error
         else
-          activities = results.hits.map((a)-> a._source )
+          activities = results.hits.map((hit)->
+            activity = hit._source
+            activity.url = "/activity/#{activity.id}"
+            return activity)
           callback null,
             total: results.total
             limit: params.size

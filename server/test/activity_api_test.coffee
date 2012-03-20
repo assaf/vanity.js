@@ -105,6 +105,10 @@ describe "activity", ->
         activity = JSON.parse(body)
         assert /^<div/.test(activity.content)
 
+      it "should include activity URL", ->
+        activity = JSON.parse(body)
+        assert.equal activity.url, "/activity/seeme"
+
 
     describe "HTML", (done)->
 
@@ -216,6 +220,11 @@ describe "activity", ->
         { activities } = JSON.parse(body)
         for activity in activities
           assert /^<div/.test(activity.content)
+
+      it "should include activity URL", ->
+        { activities } = JSON.parse(body)
+        for activity in activities
+          assert /^\/activity\/\d$/.test(activity.url)
 
 
     describe "query", (done)->
