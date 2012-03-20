@@ -1,4 +1,5 @@
 <div id="activity-<%= @id %>" class="activity">
+  <a href="<%= @url %>" class="permalink"></a> 
   <span class="actor">
     <% if @actor.url : %><a href="<%= @actor.url %>"><% end %>
       <% if @actor.image && @actor.image.url : %><img src="<%= @actor.image.url %>" class="avatar"><% end %>

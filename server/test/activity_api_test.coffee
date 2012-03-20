@@ -104,7 +104,7 @@ describe "activity", ->
 
       it "should include HTML representation", ->
         activity = JSON.parse(body)
-        assert /^<div/.test(activity.content)
+        assert /<div/.test(activity.content)
 
       it "should include activity URL", ->
         activity = JSON.parse(body)
@@ -149,7 +149,7 @@ describe "activity", ->
 
         it "should return an HTML document fragment", ->
           assert /text\/html/.test(headers['content-type'])
-          assert /^<div/.test(body)
+          assert /<div/.test(body)
           assert !(/html/.test(body))
 
 
