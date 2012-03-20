@@ -21,6 +21,8 @@
       </a>
     <% end %>
   <% end %>
-  <span class="timestamp"><%= new Date(@published).toLocaleString() %></span>
-  <% if @location && @location.displayName: %><span class="location">From <%= @location.displayName %></span><% end %>
+  <span class="meta">
+    <span class="published"><%= new Date(@published).toLocaleString() %></span>
+    <% if @location && @location.displayName: %><span class="location"><%= @location.displayName %></span><% end %>
+  </span>
 </div>

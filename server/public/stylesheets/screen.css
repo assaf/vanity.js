@@ -1,0 +1,71 @@
+body {
+  font: 14px "Helvetica Neue", "Helvetica", "Verdana";
+	-webkit-font-smoothing: antialiased;
+}
+
+
+/* Multiple activities */
+ol.activities {
+  list-style: none;
+  margin: 32px;
+  padding: 0;
+  width: 640px;
+}
+ol.activities>li {
+  margin: 0 0 12px 0;
+  padding: 0;
+}
+
+
+.activity {
+  position: relative;
+  margin: 0;
+  padding: 0px 0 12px 32px;
+  border-bottom: 1px solid #ddd;
+}
+/* Make entire activity clickable to permalink, but without breaking actual links or images */
+.activity a {
+  z-index: 2;
+  position: relative;
+}
+.activity a img {
+  z-index: 2;
+  position: relative;
+}
+.activity .permalink {
+  display: block;
+  position: absolute;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+/* Avatar shows to the left of actor name */
+.activity .actor .avatar {
+  width: 24px;
+  height: 24px;
+  margin: 0px 8px -12px -32px;
+}
+/* Space between actor verb and object */
+.activity .verb:before, 
+.activity .verb:after {
+  content: " "
+}
+/* Size limit on media image */
+.activity .image img {
+  width: 200px;
+  display: block;
+  margin: 12px 24px;
+}
+/* Published/location in small text underneath */
+.activity .meta {
+  font-size: 12px;
+  font-weight: 200;
+  display: block;
+  margin: 4px 0 0 0;
+}
+.activity .published:before {
+  content: "Published "
+}
+.activity .location:before {
+  content: " from "
+}

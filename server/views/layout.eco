@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>Vanity<%= " &mdash #{@title.replace(/\.$/, "")}" if @title %></title>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/screen.css">
   </head>
   <body>
     <%- @body %>
