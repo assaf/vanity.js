@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Vanity</title>
+    <title>Vanity<%= " &mdash #{@title.replace(/\.$/, "")}" if @title %></title>
   </head>
   <body>
     <%- @body %>

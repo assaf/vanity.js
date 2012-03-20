@@ -107,6 +107,7 @@ server.get "/activity/:id", (req, res, next)->
     else if activity
       if req.accepts("html")
         res.local "layout", (req.headers["x-requested-with"] != "XMLHttpRequest")
+        res.local "title", activity.title
         res.render "activity", enhance(activity)
       else
         res.send enhance(activity), 200
@@ -125,15 +126,18 @@ server.del "/activity/:id", (req, res, next)->
 
 # Adds url, title and content to activity and returns it.
 enhance = (activity)->
+  # URL to activity view
   activity.url = "/activity/#{activity.id}"
 
+  # Title consists of actor, verb and object name/URL
   title = "#{activity.actor.displayName} #{activity.verb}"
-  if activity.object?.displayName
-    title += " #{activity.object.displayName}"
+  object = activity.object
+  if object && (object.url || object.displayName)
+    title += " #{object.displayName || object.url}"
   activity.title = "#{title}."
 
   unless Activity.template
     Activity.template = Express.view.compile("_activity.eco", {}, null, root: server.settings.views).fn
-  activity.content = Activity.template(activity).replace(/\s+/g, " ")
+  activity.content = Activity.template(activity).replace(/\s+/g, " ").replace(/>\s</g, "><")
   return activity
 

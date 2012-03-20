@@ -15,7 +15,11 @@
         <%= @object.displayName %>
       <% end %>
     </span>
-    <% if @object.image : %><a class="media image" href="<%= @object.url || @object.image.url %>"><img src="<%= @object.image.url %>"></a><% end %>
+    <% if @object.image : %>
+      <a class="media image" href="<%= @object.url || @object.image.url %>">
+        <img src="<%= @object.image.url %>">
+      </a>
+    <% end %>
   <% end %>
   <span class="timestamp"><%= new Date(@published).toLocaleString() %></span>
   <% if @location && @location.displayName: %><span class="location">From <%= @location.displayName %></span><% end %>
