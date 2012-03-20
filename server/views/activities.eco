@@ -1,0 +1,9 @@
+<form method="get" action="/activity">
+<input name="query" size="32" value="<%= @query %>">
+<button>Search</button>
+</form>
+<ol class="activities">
+  <% for activity in @activities: %>
+  <li><a href="<%= activity.url %>">#</a> <%- activity.content %></li>
+  <% end %>
+</ol>

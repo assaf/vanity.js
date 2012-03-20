@@ -53,6 +53,7 @@ server.get "/activity", (req, res)->
       return
      
     result =
+      query: params.query || "*"
       total: results.total
       activities: results.activities
 
@@ -70,7 +71,10 @@ server.get "/activity", (req, res)->
       prev.offset = Math.max(params.offset - results.limit, 0)
       result.prev = "/activity?" + QS.stringify(prev)
 
-    res.send result, 200
+    if req.accepts("html")
+      res.render "activities", result
+    else
+      res.send result, 200
   
 
 # Server-sent events activity stream.
