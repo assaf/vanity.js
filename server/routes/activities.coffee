@@ -33,8 +33,9 @@ server.post "/activity", (req, res, next)->
 # end     - Returns activities published up (excluding) this time (ISO8601)
 #
 # Returns a JSON document with the following properties:
-# total      - Total number of activities that match this query
-# activities - Activities that match this query (from offset, up to limit)
+# totalItems - Total number of activities that match this query
+# items      - Activities that match this query (from offset, up to limit)
+# url        - URL to the full collection
 # next       - Path for requesting the next result set (if not last)
 # prev       - Path for requesting the previous result set (if not first
 server.get "/activity", (req, res)->
@@ -54,9 +55,10 @@ server.get "/activity", (req, res)->
       return
      
     result =
-      query: params.query || "*"
-      total: results.total
-      activities: results.activities.map((a)-> enhance(a))
+      query:      params.query || "*"
+      totalItems: results.total
+      items:      results.activities.map((a)-> enhance(a))
+      url:        "/activity"
 
     # We don't know what limit was applied, but we do know if there are more results beyond what we got, in which case
     # we include link to the next offset.

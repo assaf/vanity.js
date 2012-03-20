@@ -217,47 +217,52 @@ describe "activity", ->
         assert /application\/json/.test(headers['content-type'])
 
       it "should return results count", ->
-        { total } = JSON.parse(body)
-        assert.equal total, 3
+        { totalItems } = JSON.parse(body)
+        assert.equal totalItems, 3
 
       it "should return activities", ->
-        { activities } = JSON.parse(body)
-        for activity in activities
+        { items } = JSON.parse(body)
+        for activity in items
           assert activity.actor?.displayName
 
       it "should return most recent activity first", ->
-        { activities } = JSON.parse(body)
-        names = activities.map("actor").map("displayName")
+        { items } = JSON.parse(body)
+        names = items.map("actor").map("displayName")
         assert.deepEqual names, ["David", "Jerome", "Assaf"]
 
       it "should include HTML representation", ->
-        { activities } = JSON.parse(body)
-        for activity in activities
+        { items } = JSON.parse(body)
+        for activity in items
           assert /^<div/.test(activity.content)
 
       it "should include activity URL", ->
-        { activities } = JSON.parse(body)
-        for activity in activities
+        { items } = JSON.parse(body)
+        for activity in items
           assert /^\/activity\/[0-9a-f]{8}$/.test(activity.url)
 
       it "should include title", ->
-        { activities } = JSON.parse(body)
-        for activity in activities
+        { items } = JSON.parse(body)
+        for activity in items
           assert /(Assaf|David|Jerome) (started|continued|completed)\./.test(activity.title)
+
+      it "should return JSON url to full collection", ->
+        { url } = JSON.parse(body)
+        assert.equal url, "/activity"
 
 
     describe "query", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        request.get "http://localhost:3003/activity?query=NOT+assaf", headers: headers, (_, response)->
+        url = "http://localhost:3003/activity?query=NOT+assaf"
+        request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
 
       it "should return only matching activities", ->
-        { activities } = JSON.parse(body)
-        assert.equal activities.length, 2
-        assert.equal activities[0].actor.displayName, "David"
-        assert.equal activities[1].actor.displayName, "Jerome"
+        { items } = JSON.parse(body)
+        assert.equal items.length, 2
+        assert.equal items[0].actor.displayName, "David"
+        assert.equal items[1].actor.displayName, "Jerome"
 
       it "should not return link to next result set", ->
         { next } = JSON.parse(body)
@@ -267,18 +272,24 @@ describe "activity", ->
         { prev } = JSON.parse(body)
         assert !prev
 
+      it "should return JSON url to full collection", ->
+        { url } = JSON.parse(body)
+        assert.equal url, "/activity"
+
+
     describe "limit", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        request.get "http://localhost:3003/activity?limit=2", headers: headers, (_, response)->
+        url = "http://localhost:3003/activity?limit=2"
+        request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
 
       it "should return only N most recent activities", ->
-        { activities } = JSON.parse(body)
-        assert.equal activities.length, 2
-        assert.equal activities[0].actor.displayName, "David"
-        assert.equal activities[1].actor.displayName, "Jerome"
+        { items } = JSON.parse(body)
+        assert.equal items.length, 2
+        assert.equal items[0].actor.displayName, "David"
+        assert.equal items[1].actor.displayName, "Jerome"
 
       it "should return link to next result set", ->
         { next } = JSON.parse(body)
@@ -288,17 +299,19 @@ describe "activity", ->
         { prev } = JSON.parse(body)
         assert !prev
 
+
     describe "offset", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        request.get "http://localhost:3003/activity?offset=1&limit=1", headers: headers, (_, response)->
+        url = "http://localhost:3003/activity?offset=1&limit=1"
+        request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
 
       it "should return only N most recent activities, from offset", ->
-        { activities } = JSON.parse(body)
-        assert.equal activities.length, 1
-        assert.equal activities[0].actor.displayName, "Jerome"
+        { items } = JSON.parse(body)
+        assert.equal items.length, 1
+        assert.equal items[0].actor.displayName, "Jerome"
 
       it "should return link to next result set", ->
         { next } = JSON.parse(body)
@@ -308,42 +321,48 @@ describe "activity", ->
         { prev } = JSON.parse(body)
         assert.equal prev, "/activity?limit=1&offset=0"
 
+
     describe "start", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        request.get "http://localhost:3003/activity?start=2011-03-18T18:51:00Z", headers: headers, (_, response)->
+        url = "http://localhost:3003/activity?start=2011-03-18T18:51:00Z"
+        request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
 
       it "should return only activities published at/after start time", ->
-        { activities } = JSON.parse(body)
-        assert.equal activities.length, 2
-        assert.equal activities[0].actor.displayName, "David"
-        assert.equal activities[1].actor.displayName, "Jerome"
+        { items } = JSON.parse(body)
+        assert.equal items.length, 2
+        assert.equal items[0].actor.displayName, "David"
+        assert.equal items[1].actor.displayName, "Jerome"
+
 
     describe "end", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        request.get "http://localhost:3003/activity?end=2011-03-18T18:51:00Z", headers: headers, (_, response)->
+        url = "http://localhost:3003/activity?end=2011-03-18T18:51:00Z"
+        request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
 
       it "should return only activities published before start time", ->
-        { activities } = JSON.parse(body)
-        assert.equal activities.length, 1
-        assert.equal activities[0].actor.displayName, "Assaf"
+        { items } = JSON.parse(body)
+        assert.equal items.length, 1
+        assert.equal items[0].actor.displayName, "Assaf"
+
 
     describe "start/end", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        request.get "http://localhost:3003/activity?start=2011-03-18T18:50:30Z&end=2011-03-18T18:51:30Z", headers: headers, (_, response)->
+        url = "http://localhost:3003/activity?start=2011-03-18T18:50:30Z&end=2011-03-18T18:51:30Z"
+        request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
 
       it "should return only activities published between start/end time", ->
-        { activities } = JSON.parse(body)
-        assert.equal activities.length, 1
-        assert.equal activities[0].actor.displayName, "Jerome"
+        { items } = JSON.parse(body)
+        assert.equal items.length, 1
+        assert.equal items[0].actor.displayName, "Jerome"
 
     after search.teardown
 
