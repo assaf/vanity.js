@@ -51,17 +51,14 @@ server.get "/activity/:id", (req, res, next)->
 # next       - Path for requesting the next result set (if not last)
 # prev       - Path for requesting the previous result set (if not first
 server.get "/activity", (req, res)->
-  searchAndRender req.query, res
-
-searchAndRender = (query, res)->
   params = {}
   # Only add query fields that are present.  We use params object to construct query string for next/prev navigation
   # links, so don't include junk in there.
-  params.query = query.query if query.query
-  params.limit = parseInt(query.limit, 10) if query.limit
-  params.offset = parseInt(query.offset, 10) if query.offset
-  params.start = query.start if query.start
-  params.end = query.end if query.end
+  params.query = req.query.query if req.query.query
+  params.limit = parseInt(req.query.limit, 10) if req.query.limit
+  params.offset = parseInt(req.query.offset, 10) if req.query.offset
+  params.start = req.query.start if req.query.start
+  params.end = req.query.end if req.query.end
 
   Activity.search params, (error, results)->
     if error
@@ -90,40 +87,21 @@ searchAndRender = (query, res)->
     res.send result, 200
   
 
-# Retrieve activities for a given date.  Basically sets the start/end query parameters based on the date in the path.
-# All other query parameters (query, limit, etc) supported.
-server.get "/activity/day/:date", (req, res)->
-  params = req.query
-  date = new Date(req.params.date).beginningOfDay()
-  req.query.start = date.format(Date.ISO8601_DATE)
-  req.query.end = date.addDays(1).format(Date.ISO8601_DATE)
-  searchAndRender params, res
-
-
 server.get "/activity/stream", (req, res, next)->
   res.writeHead 200,
     "Content-Type":   "text/event-stream; charset=utf-8"
     "Cache-Control":  "no-cache"
     "Connection":     "keep-alive"
+  res.write ": after 5 seconds\nretry: 5000\n\n"
 
-  Activity.search {}, (error, result)->
-    if error
-      next(error)
-      return
+  # Send each activity that gets created.
+  send = (activity)->
+    res.write "event: activity\nid: #{activity.id}\ndata: #{JSON.stringify(activity)}\n\n"
+  Activity.addListener "activity", send
 
-    for i in [result.activities.length - 1..0] by -1
-      activity = result.activities[i]
-      res.write "id: #{activity.id}\ndata: #{JSON.stringify(activity)}\n\n"
-    setTimeout ->
-      res.write "id: 4\ndata: test\n\n"
-    , 100
-
-    console.log "Done"
-    #res.end()
-
+  # Stop listener when browser disconnects.
   res.socket.on "close", ->
-    console.log "Socket closed"
-    next()
+    Activity.removeListener "activity", send
 
 
 # Delete activity.

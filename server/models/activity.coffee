@@ -3,11 +3,15 @@
 # Activity stream consists of multiple activities.
 
 
-Crypto    = require("crypto")
-search    = require("../config/search")
-name      = require("../lib/vanity/names")
-geocode   = require("../lib/vanity/utils/geocode")
+Crypto            = require("crypto")
+{ EventEmitter }  = require("events")
+search            = require("../config/search")
+name              = require("../lib/vanity/names")
+geocode           = require("../lib/vanity/utils/geocode")
 
+
+# For dispatching events, e.g. notify activity got created.
+events = new EventEmitter()
 
 
 class Activity
@@ -72,7 +76,12 @@ class Activity
         id:     id
       search (es_index)->
         es_index.index "activity", doc, options, (error)->
-          callback error, id
+          if error
+            events.emit "error", error
+            callback error if callback
+          else
+            events.emit "activity", doc
+            callback null, id if callback
 
     # If location provided we need some geocoding action.
     if location
@@ -147,6 +156,19 @@ class Activity
   @delete: (id, callback)->
     search (es_index)->
       es_index.delete "activity", id, ignoreMissing: true, callback
+
+
+  # Add event listener.
+  @on: (event, listener)->
+    Activity.addListener event, listener
+
+  # Add event listener.
+  @addListener: (event, listener)->
+    events.addListener event, listener
+
+  # Remove event listener.
+  @removeListener: (event, listener)->
+    events.removeListener event, listener
 
 
 module.exports = Activity

@@ -1,0 +1,22 @@
+[ { "id": "1",
+    "actor": {
+      "displayName": "Assaf"
+    },
+    "verb": "started",
+    "published": "2011-03-18T18:50:00Z"
+  },
+  { "id": "2",
+    "actor": {
+      "displayName": "Jerome"
+    },
+    "verb": "continued",
+    "published": "2011-03-18T18:51:00Z"
+  },
+  { "id": "3",
+    "actor": {
+      "displayName": "David"
+    },
+    "verb": "completed",
+    "published": "2011-03-18T18:52:00Z"
+  }
+]

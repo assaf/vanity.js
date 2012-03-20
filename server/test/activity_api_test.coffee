@@ -5,7 +5,7 @@ request           = require("request")
 Activity          = require("../models/activity")
 search            = require("../config/search")
 { setup }         = require("./helper")
-SSEClient         = require("./sse_client")
+EventSource       = require("./sse_client")
 
 
 describe "activity", ->
@@ -288,75 +288,36 @@ describe "activity", ->
     after search.teardown
 
 
-  # -- Listing activities for a day --
-  
-  describe "activities for a day", ->
-    statusCode = body = headers = null
-
-    before (done)->
-      file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
-      Async.forEach JSON.parse(file), (activity, done)->
-        Activity.create activity, done
-      , ->
-        search (es_index)->
-          es_index.refresh done
-        
-    describe "with activity", (done)->
-      before (done)->
-        headers = { "Accept": "application/json" }
-        request.get "http://localhost:3003/activity/day/2011-03-18", headers: headers, (_, response)->
-          { statusCode, headers, body } = response
-          done()
-
-      it "should return 200", ->
-        assert.equal statusCode, 200
-
-      it "should return all activities", ->
-        { activities } = JSON.parse(body)
-        assert.equal activities.length, 0
-
-    describe "with no activity", (done)->
-      before (done)->
-        headers = { "Accept": "application/json" }
-        request.get "http://localhost:3003/activity/day/2011-03-17", headers: headers, (_, response)->
-          { statusCode, headers, body } = response
-          done()
-
-      it "should return 200", ->
-        assert.equal statusCode, 200
-
-      it "should return no activities", ->
-        { activities } = JSON.parse(body)
-        assert.equal activities.length, 0
-
-
   # -- Activity stream --
   
-  describe "activities for a day", ->
-    statusCode = body = headers = null
+  describe "activities stream", ->
+
+    # Collect events sent to event source.
+    events = []
 
     before (done)->
-      file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
-      Async.forEach JSON.parse(file), (activity, done)->
-        Activity.create activity, done
-      , ->
-        search (es_index)->
-          es_index.refresh done
-        
-    describe "startup", (done)->
-      before (done)->
-        sse = new SSEClient("http://localhost:3003/activity/stream")
-        sse.on "status", (status, headers)->
-          assert.equal status, 200
-          console.log headers
-        sse.on "data", (id, type, data)->
-          console.log id, type, data
-        sse.on "error", ->
-          console.log arguments
-        #  done()
+      # Fire up the event source, we need to be connected to receive anything.
+      event_source = new EventSource("http://localhost:3003/activity/stream")
+      # Wait until we're connected, then create activities and have then sent to event source.
+      event_source.onopen = ->
+        file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
+        Async.forEach JSON.parse(file), (activity, done)->
+          Activity.create activity, done
+        , ->
+      # Process activities as they come in.
+      event_source.addEventListener "activity", (event)->
+        events.push event
+        # We only wait for the first three events
+        if events.length == 3
+          event_source.close()
+          done()
 
-      it "should return 200", ->
-        assert.equal statusCode, 200
+    it "should receive all three events", ->
+      assert.equal events.length, 3
+      ids = events.map("lastEventId").sort()
+      assert.deepEqual ids, ["1", "2", "3"]
+
+    after search.teardown
   
 
   # -- Deleting an activity --
