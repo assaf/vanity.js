@@ -14,12 +14,10 @@ server.configure "test", ->
     console.error error
     next error
 
-
-global.server = server
-files = FS.readdirSync("#{__dirname}/../routes")
-for file in files
-  require("#{__dirname}/../routes/#{file}")
-delete global.server
+server.configure ->
+  FS.readdir "#{__dirname}/../routes", (error, files)->
+    for file in files
+      require("#{__dirname}/../routes/#{file}")
 
 
 module.exports = server

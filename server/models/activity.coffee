@@ -5,7 +5,9 @@
 
 Crypto            = require("crypto")
 { EventEmitter }  = require("events")
+Express           = require("express")
 search            = require("../config/search")
+server            = require("../config/server")
 name              = require("../lib/vanity/names")
 geocode           = require("../lib/vanity/utils/geocode")
 
@@ -15,6 +17,8 @@ events = new EventEmitter()
 
 
 class Activity
+
+  # -- Creating and deleting --
 
   # Creates a new activity.
   #
@@ -69,20 +73,6 @@ class Activity
         url:         object.url?.toString()
         image:       object.image
 
-    # This in fact stores the document.  In Node callback world, we write functions backwards.
-    store = ->
-      options =
-        create: false
-        id:     id
-      search (es_index)->
-        es_index.index "activity", doc, options, (error)->
-          if error
-            events.emit "error", error
-            callback error if callback
-          else
-            events.emit "activity", doc
-            callback null, id if callback
-
     # If location provided we need some geocoding action.
     if location
       geocode location, (error, result)->
@@ -92,11 +82,39 @@ class Activity
           doc.location = result
         else
           doc.location = { displayName: location }
-        store()
+        @_store doc, callback
     else
-      store()
+      @_store doc, callback
 
     return id
+
+  @_render: (doc)->
+    unless Activity.template
+      Activity.template = Express.view.compile("activity.eco", {}, null, root: server.settings.views).fn
+    return Activity.template(doc).replace(/\s+/g, " ")
+
+  @_store: (doc, callback)->
+    doc.content ||= @_render(doc)
+    options =
+      create: false
+      id:     doc.id
+    search (es_index)->
+      es_index.index "activity", doc, options, (error)->
+        if error
+          Activity.emit "error", error
+          callback error if callback
+        else
+          Activity.emit "activity", doc
+          callback null, doc.id if callback
+
+
+  # Deletes activity by id.
+  @delete: (id, callback)->
+    search (es_index)->
+      es_index.delete "activity", id, ignoreMissing: true, callback
+
+
+  # -- Retrieving and searching --
 
 
   # Returns activity by id (null if not found).
@@ -152,11 +170,10 @@ class Activity
             activities: activities
 
 
-  # Deletes activity by id.
-  @delete: (id, callback)->
-    search (es_index)->
-      es_index.delete "activity", id, ignoreMissing: true, callback
+  # -- Activity stream events --
 
+  @emit: (event, data)->
+    events.emit event, data
 
   # Add event listener.
   @on: (event, listener)->

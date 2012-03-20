@@ -1,5 +1,6 @@
 QS       = require("querystring")
 Activity = require("../models/activity")
+server   = require("../config/server")
 
 
 # Create a new activity.
@@ -28,7 +29,7 @@ server.get "/activity/:id", (req, res, next)->
       next(error)
     else if activity
       if req.accepts("html")
-        activity.layout = null
+        res.local "layout", (req.headers["x-requested-with"] != "XMLHttpRequest")
         res.render "activity", activity
       else
         res.send activity, 200
@@ -66,6 +67,7 @@ server.get "/activity", (req, res)->
       res.send "Cannot execute query", 400
       return
 
+      
     result =
       total: results.total
       activities: results.activities

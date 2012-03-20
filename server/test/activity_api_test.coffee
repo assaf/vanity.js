@@ -101,19 +101,44 @@ describe "activity", ->
         assert.equal activity.id, "seeme"
         assert.equal activity.actor.displayName, "Assaf"
 
+      it "should include HTML representation", ->
+        activity = JSON.parse(body)
+        assert /^<div/.test(activity.content)
+
+
     describe "HTML", (done)->
-      before (done)->
-        headers = { "Accept": "text/html" }
-        request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
-          { statusCode, headers, body } = response
-          done()
 
-      it "should return 200", ->
-        assert.equal statusCode, 200
+      describe "full page", ->
+        before (done)->
+          headers = { "Accept": "text/html" }
+          request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
+            { statusCode, headers, body } = response
+            done()
 
-      it "should return an HTML document", ->
-        assert /text\/html/.test(headers['content-type'])
-        assert /<div/.test(body)
+        it "should return 200", ->
+          assert.equal statusCode, 200
+
+        it "should return an HTML document", ->
+          assert /text\/html/.test(headers['content-type'])
+          assert /^<!DOCTYPE/.test(body)
+
+      describe "partial", ->
+        before (done)->
+          headers =
+            "Accept":           "text/html"
+            "X-Requested-With": "XMLHttpRequest"
+          request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
+            { statusCode, headers, body } = response
+            done()
+
+        it "should return 200", ->
+          assert.equal statusCode, 200
+
+        it "should return an HTML document fragment", ->
+          assert /text\/html/.test(headers['content-type'])
+          assert /^<div/.test(body)
+          assert !(/html/.test(body))
+
 
     describe "any content type", (done)->
       before (done)->
@@ -127,7 +152,8 @@ describe "activity", ->
 
       it "should return an HTML document", ->
         assert /text\/html/.test(headers['content-type'])
-        assert /<div/.test(body)
+        assert /<html/.test(body)
+
 
     describe "no such activity", (done)->
       before (done)->
@@ -185,6 +211,12 @@ describe "activity", ->
         { activities } = JSON.parse(body)
         ids = activities.map((a)-> a.id)
         assert.deepEqual ids, ["3", "2", "1"]
+
+      it "should include HTML representation", ->
+        { activities } = JSON.parse(body)
+        for activity in activities
+          assert /^<div/.test(activity.content)
+
 
     describe "query", (done)->
       before (done)->
