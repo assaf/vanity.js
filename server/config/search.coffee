@@ -147,14 +147,25 @@ search = (fn)->
   return
 
 
+# Returns Elastical.Index object.
+get_index = ->
+  # Use configuration to create es_index, but don't make it accessible yet.
+  index_name = config.elasticsearch?.index || "vanity"
+  client = new Elastical.Client(config.elasticsearch?.hostname || "localhost",
+                                port: config.elasticsearch?.port,
+                                curlDebug: process.env.DEBUG)
+  return new Elastical.Index(client, index_name)
+
+
 # This is used during testing to delete index between tests.
 search.teardown = (callback)->
-  if es_index
-    es_index.deleteIndex ->
-      es_index = null
+  index = get_index()
+  index.exists (error, exists)->
+    es_index = null
+    if exists
+      index.deleteIndex callback
+    else
       callback()
-  else
-    callback()
 
 
 module.exports = search

@@ -6,6 +6,10 @@ default :
 setup :
 	npm install
 
+# Populates ElasticSearch with fake data
+fake :
+	coffee lib/fake_it
+
 # UI for ElasticSearch
 es-view :
 	if [[ ! -d /usr/local/Cellar/elasticsearch/0.19.0/plugins/head/ ]] ; then \
