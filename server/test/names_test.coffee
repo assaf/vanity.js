@@ -1,6 +1,6 @@
 assert = require("assert")
 File   = require("fs")
-name   = require("../lib/vanity/names")
+name   = require("../lib/names")
 { male, female } = name
 
 
@@ -120,21 +120,21 @@ describe "names", ->
 
   describe "from ID", ->
     it "should return given name and first letter of family name", ->
-      assert.equal name("85bb3cfe1"), "Willie I."
+      assert.equal name("1ff4efbdf"), "Jack U."
 
     it "should return female names", ->
-      assert.equal name("1ff4efbdf"), "Dawn A."
+      assert.equal name("85bb3cfe1"), "Letha L."
 
     it "should return male names", ->
-      assert.equal name("7864c456f"), "James A."
+      assert.equal name("7864c456f"), "Pierre Y."
 
     it "should return same name consistently for same ID", ->
       ids = ["07F9F5E2F3", "07F9F5E2F3", "07F9F5E2F3", "07F9F5E2F3", "07F9F5E2F3", "07F9F5E2F3"]
       names = ids.map((id)-> name(id)).sort()
-      assert.deepEqual unique(names), ["Lester S."]
+      assert.deepEqual unique(names), ["Audrey V."]
 
     it "should return different name for different ID", ->
       ids = ["07F9F5E2F3", "31F509B60E", "CDE02B9F4B", "D624D97240", "6913D09DA8", "8E44C8C990"]
       names = ids.map((id)-> name(id)).sort()
-      assert.deepEqual unique(names), ["Alfonso O.", "Alicia Q.", "Christopher I.", "Goldie I.", "Lester S."]
+      assert.deepEqual unique(names), ["Ann B.", "Audrey V.", "David M.", "Goldie R.", "Orville G.", "Robert Q."]
 

@@ -8,8 +8,8 @@ Crypto            = require("crypto")
 Express           = require("express")
 search            = require("../config/search")
 server            = require("../config/server")
-name              = require("../lib/vanity/names")
-geocode           = require("../lib/vanity/utils/geocode")
+name              = require("../lib/names")
+geocode           = require("../lib/geocode")
 
 
 # For dispatching events, e.g. notify activity got created.
@@ -187,6 +187,10 @@ class Activity
   # Add event listener.
   @on: (event, listener)->
     Activity.addListener event, listener
+
+  # Add event listener.
+  @once: (event, listener)->
+    events.once event, listener
 
   # Add event listener.
   @addListener: (event, listener)->

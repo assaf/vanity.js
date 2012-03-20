@@ -9,7 +9,9 @@ describe "activity", ->
 
   before setup
 
-  # Activity actor.
+
+  # -- Activity actor. --
+  
   describe "actor", ->
 
     describe "name only", ->
@@ -49,7 +51,7 @@ describe "activity", ->
           browser.visit "/activity/#{activity_id}", done
 
       it "should make name up from actor ID", ->
-        assert.equal browser.query(".activity .actor .name").textContent, "Alonso U."
+        assert.equal browser.query(".activity .actor .name").textContent, "Teresa T."
 
       
     describe "image", ->
@@ -92,7 +94,8 @@ describe "activity", ->
         assert.equal browser.query(".activity .actor img.avatar").getAttribute("src"), "http://awe.sm/5hWp5"
 
 
-  # Activity verb.
+  # -- Activity verb --
+  
   describe "verb", ->
 
     before (done)->
@@ -106,7 +109,8 @@ describe "activity", ->
       assert.equal browser.query(".activity .actor + .verb").textContent, "tested"
 
       
-  # Activity verb.
+  # -- Activity verb --
+  
   describe "object", ->
    
     describe "missing", ->
@@ -213,7 +217,8 @@ describe "activity", ->
         assert.equal browser.query(".activity a.image img").getAttribute("src"), "http://awe.sm/5hWp5"
 
 
-  # Activity time stamp
+  # -- Activity time stamp --
+  
   describe "timestamp", ->
     before (done)->
       params =
@@ -227,7 +232,8 @@ describe "activity", ->
       assert.equal browser.query(".activity .timestamp").textContent, "Tue Mar 13 2012 23:33:44 GMT-0700 (PDT)"
 
 
-  # Activity location
+  # -- Activity location --
+  
   describe "location", ->
     before (done)->
       params =

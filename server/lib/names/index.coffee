@@ -12,9 +12,9 @@
 #   console.log name("1ff4efbdf")
 #   => "Dawn Y."
 
-File   = require("fs")
-Crypto = require("crypto")
-BTree  = require("./b_tree")
+File          = require("fs")
+BTree         = require("./b_tree")
+{ hashCode }  = require("../utils")
 
 
 UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -53,11 +53,10 @@ male = (percentile)->
 
 # Given an identifier, returns a suitable name (given name, followed by first later of family name).
 name = (identifier)->
-  sha = Crypto.createHash("SHA1")
-  code = parseInt(sha.update(identifier).digest("hex"), 16)
-  gender = if code % 200 >= 100 then female else male
-  given = gender(code % 100)
-  family = UPPERCASE[(code / 100) % 26]
+  hash = hashCode(identifier.toString())
+  gender = if hash % 200 >= 100 then female else male
+  given = gender(hash % 100)
+  family = UPPERCASE[Math.floor(hash / 100) % 26]
   return "#{given} #{family}."
 
 

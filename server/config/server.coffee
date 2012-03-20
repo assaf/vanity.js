@@ -1,6 +1,5 @@
 Express   = require("express")
 FS        = require("fs")
-Activity  = require("../models/activity")
 
 
 server = Express.createServer()

@@ -17,7 +17,7 @@ describe "activity", ->
   describe "post", ->
     statusCode = body = headers = null
     params =
-      id:     "posted"
+      id:     "8fea081c"
       actor:  { displayName: "Assaf" }
       verb:   "posted"
 
@@ -28,21 +28,21 @@ describe "activity", ->
           done()
 
       it "should create activity", (done)->
-        setTimeout ->
-          Activity.get "posted", (error, activity)->
+        Activity.once "activity", ->
+          Activity.get "8fea081c", (error, activity)->
             assert activity
             assert.equal activity.actor.displayName, "Assaf"
             done()
-        , 100
 
       it "should return 201", ->
         assert.equal statusCode, 201
 
       it "should return location of new activity", ->
-        assert.equal headers["location"], "/activity/posted"
+        assert.equal headers["location"], "/activity/8fea081c"
 
       it "should return empty document", ->
         assert.equal body, " "
+
 
     describe "not valid", ->
       before (done)->
@@ -55,6 +55,7 @@ describe "activity", ->
 
       it "should return error message", ->
         assert.equal body, "Activity requires verb"
+
 
     describe "no body", ->
       before (done)->
@@ -74,19 +75,19 @@ describe "activity", ->
   # -- Getting an activity --
   
   describe "get activity", ->
-    statusCode = body = headers = null
-
     before (done)->
       params =
-        id:     "seeme"
+        id:     "fe936972"
         actor:  { displayName: "Assaf" }
         verb:   "posted"
-      Activity.create id: "seeme", actor: { displayName: "Assaf" }, verb: "tested", done
+      Activity.create params, done
 
-    describe "JSON", (done)->
+    describe "JSON", ->
+      statusCode = body = headers = null
+
       before (done)->
         headers = { "Accept": "application/json" }
-        request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
+        request.get "http://localhost:3003/activity/fe936972", headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
 
@@ -98,7 +99,7 @@ describe "activity", ->
 
       it "should return the activity", ->
         activity = JSON.parse(body)
-        assert.equal activity.id, "seeme"
+        assert.equal activity.id, "fe936972"
         assert.equal activity.actor.displayName, "Assaf"
 
       it "should include HTML representation", ->
@@ -107,15 +108,17 @@ describe "activity", ->
 
       it "should include activity URL", ->
         activity = JSON.parse(body)
-        assert.equal activity.url, "/activity/seeme"
+        assert.equal activity.url, "/activity/fe936972"
 
 
-    describe "HTML", (done)->
+    describe "HTML", ->
 
       describe "full page", ->
+        statusCode = body = headers = null
+
         before (done)->
           headers = { "Accept": "text/html" }
-          request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
+          request.get "http://localhost:3003/activity/fe936972", headers: headers, (_, response)->
             { statusCode, headers, body } = response
             done()
 
@@ -127,11 +130,13 @@ describe "activity", ->
           assert /^<!DOCTYPE/.test(body)
 
       describe "partial", ->
+        statusCode = body = headers = null
+
         before (done)->
           headers =
             "Accept":           "text/html"
             "X-Requested-With": "XMLHttpRequest"
-          request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
+          request.get "http://localhost:3003/activity/fe936972", headers: headers, (_, response)->
             { statusCode, headers, body } = response
             done()
 
@@ -144,10 +149,12 @@ describe "activity", ->
           assert !(/html/.test(body))
 
 
-    describe "any content type", (done)->
+    describe "any content type", ->
+      statusCode = body = headers = null
+
       before (done)->
         headers = { "Accept": "*/*" }
-        request.get "http://localhost:3003/activity/seeme", headers: headers, (_, response)->
+        request.get "http://localhost:3003/activity/fe936972", headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
 
@@ -159,10 +166,12 @@ describe "activity", ->
         assert /<html/.test(body)
 
 
-    describe "no such activity", (done)->
+    describe "no such activity", ->
+      statusCode = body = headers = null
+
       before (done)->
         headers = { "Accept": "*/*" }
-        request.get "http://localhost:3003/activity/nosuch", headers: headers, (_, response)->
+        request.get "http://localhost:3003/activity/f0000002", headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
 
@@ -170,7 +179,8 @@ describe "activity", ->
         assert.equal statusCode, 404
 
       it "should return an error message", ->
-        assert.equal body, "Cannot GET /activity/nosuch"
+        assert.equal body, "Cannot GET /activity/f0000002"
+
 
     after search.teardown
   
@@ -189,7 +199,7 @@ describe "activity", ->
           es_index.refresh done
         
 
-    describe "JSON", (done)->
+    describe "JSON", ->
       before (done)->
         headers = { "Accept": "application/json" }
         request.get "http://localhost:3003/activity", headers: headers, (_, response)->
@@ -213,8 +223,8 @@ describe "activity", ->
 
       it "should return most recent activity first", ->
         { activities } = JSON.parse(body)
-        ids = activities.map((a)-> a.id)
-        assert.deepEqual ids, ["3", "2", "1"]
+        names = activities.map("actor").map("displayName")
+        assert.deepEqual names, ["David", "Jerome", "Assaf"]
 
       it "should include HTML representation", ->
         { activities } = JSON.parse(body)
@@ -224,10 +234,10 @@ describe "activity", ->
       it "should include activity URL", ->
         { activities } = JSON.parse(body)
         for activity in activities
-          assert /^\/activity\/\d$/.test(activity.url)
+          assert /^\/activity\/[0-9a-f]{8}$/.test(activity.url)
 
 
-    describe "query", (done)->
+    describe "query", ->
       before (done)->
         headers = { "Accept": "application/json" }
         request.get "http://localhost:3003/activity?query=NOT+assaf", headers: headers, (_, response)->
@@ -248,7 +258,7 @@ describe "activity", ->
         { prev } = JSON.parse(body)
         assert !prev
 
-    describe "limit", (done)->
+    describe "limit", ->
       before (done)->
         headers = { "Accept": "application/json" }
         request.get "http://localhost:3003/activity?limit=2", headers: headers, (_, response)->
@@ -269,7 +279,7 @@ describe "activity", ->
         { prev } = JSON.parse(body)
         assert !prev
 
-    describe "offset", (done)->
+    describe "offset", ->
       before (done)->
         headers = { "Accept": "application/json" }
         request.get "http://localhost:3003/activity?offset=1&limit=1", headers: headers, (_, response)->
@@ -289,7 +299,7 @@ describe "activity", ->
         { prev } = JSON.parse(body)
         assert.equal prev, "/activity?limit=1&offset=0"
 
-    describe "start", (done)->
+    describe "start", ->
       before (done)->
         headers = { "Accept": "application/json" }
         request.get "http://localhost:3003/activity?start=2011-03-18T18:51:00Z", headers: headers, (_, response)->
@@ -302,7 +312,7 @@ describe "activity", ->
         assert.equal activities[0].actor.displayName, "David"
         assert.equal activities[1].actor.displayName, "Jerome"
 
-    describe "end", (done)->
+    describe "end", ->
       before (done)->
         headers = { "Accept": "application/json" }
         request.get "http://localhost:3003/activity?end=2011-03-18T18:51:00Z", headers: headers, (_, response)->
@@ -314,7 +324,7 @@ describe "activity", ->
         assert.equal activities.length, 1
         assert.equal activities[0].actor.displayName, "Assaf"
 
-    describe "start/end", (done)->
+    describe "start/end", ->
       before (done)->
         headers = { "Accept": "application/json" }
         request.get "http://localhost:3003/activity?start=2011-03-18T18:50:30Z&end=2011-03-18T18:51:30Z", headers: headers, (_, response)->
@@ -355,8 +365,9 @@ describe "activity", ->
 
     it "should receive all three events", ->
       assert.equal events.length, 3
-      ids = events.map("lastEventId").sort()
-      assert.deepEqual ids, ["1", "2", "3"]
+      # Can't guarantee order of events, must sort
+      names = events.map((event)-> JSON.parse(event.data).actor.displayName).sort()
+      assert.deepEqual names, ["Assaf", "David", "Jerome"]
 
     after search.teardown
   
@@ -366,20 +377,20 @@ describe "activity", ->
   describe "delete", ->
     before (done)->
       params =
-        id:     "deleteme"
+        id:     "015f13c4"
         actor:  { displayName: "Assaf" }
         verb:   "posted"
-      Activity.create id: "deleteme", actor: { displayName: "Assaf" }, verb: "tested", ->
-        Activity.create id: "keepme", actor: { displayName: "Assaf" }, verb: "tested", done
+      Activity.create params, ->
+        Activity.create id: "75b12975", actor: { displayName: "Assaf" }, verb: "tested", done
 
     it "should delete activity", (done)->
-      request.del "http://localhost:3003/activity/deleteme", ->
-        Activity.get "deleteme", (error, doc)->
+      request.del "http://localhost:3003/activity/015f13c4", ->
+        Activity.get "015f13c4", (error, doc)->
           assert !error && !doc
           done()
 
     it "should return 204", (done)->
-      request.del "http://localhost:3003/activity/deleteme", (_, response)->
+      request.del "http://localhost:3003/activity/015f13c4", (_, response)->
         assert.equal response.statusCode, 204
         done()
 
@@ -389,7 +400,7 @@ describe "activity", ->
         done()
 
     it "should not delete unrelated activity", (done)->
-      Activity.get "keepme", (error, doc)->
+      Activity.get "75b12975", (error, doc)->
         assert doc && doc.actor
         done()
 
