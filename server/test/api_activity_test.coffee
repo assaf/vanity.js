@@ -1,10 +1,10 @@
+{ setup }         = require("./helper") # must be at top
 assert            = require("assert")
 Async             = require("async")
 { EventEmitter }  = require("events")
 request           = require("request")
 Activity          = require("../models/activity")
 search            = require("../config/search")
-{ setup }         = require("./helper")
 EventSource       = require("./sse_client")
 
 
@@ -17,13 +17,14 @@ describe "activity", ->
   describe "post", ->
     statusCode = body = headers = null
     params =
-      id:     "8fea081c"
-      actor:  { displayName: "Assaf" }
-      verb:   "posted"
+      id:       "8fea081c"
+      actor:    { displayName: "Assaf" }
+      verb:     "posted"
+      published: new Date(1332348384734).toISOString()
 
     describe "valid", ->
       before (done)->
-        request.post "http://localhost:3003/activity", json: params, (_, response)->
+        request.post "http://localhost:3003/v1/activity", json: params, (_, response)->
           { statusCode, headers, body } = response
           done()
 
@@ -38,7 +39,7 @@ describe "activity", ->
         assert.equal statusCode, 201
 
       it "should return location of new activity", ->
-        assert.equal headers["location"], "/activity/8fea081c"
+        assert.equal headers["location"], "/v1/activity/8fea081c"
 
       it "should return empty document", ->
         assert.equal body, " "
@@ -46,7 +47,7 @@ describe "activity", ->
 
     describe "not valid", ->
       before (done)->
-        request.post "http://localhost:3003/activity", json: { }, (_, response)->
+        request.post "http://localhost:3003/v1/activity", json: { }, (_, response)->
           { statusCode, headers, body } = response
           done()
 
@@ -59,7 +60,7 @@ describe "activity", ->
 
     describe "no body", ->
       before (done)->
-        request.post "http://localhost:3003/activity", (_, response)->
+        request.post "http://localhost:3003/v1/activity", (_, response)->
           { statusCode, headers, body } = response
           done()
 
@@ -75,6 +76,7 @@ describe "activity", ->
   # -- Getting an activity --
   
   describe "get activity", ->
+
     before (done)->
       params =
         id:     "fe936972"
@@ -82,12 +84,12 @@ describe "activity", ->
         verb:   "posted"
       Activity.create params, done
 
-    describe "JSON", ->
+    describe "", ->
       statusCode = body = headers = null
 
       before (done)->
         headers = { "Accept": "application/json" }
-        request.get "http://localhost:3003/activity/fe936972", headers: headers, (_, response)->
+        request.get "http://localhost:3003/v1/activity/fe936972", headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
 
@@ -110,7 +112,7 @@ describe "activity", ->
         activity = JSON.parse(body)
         assert /<div/.test(activity.html)
 
-      it "should include activity URL", ->
+      it "should include activity view URL", ->
         activity = JSON.parse(body)
         assert.equal activity.url, "/activity/fe936972"
 
@@ -119,67 +121,12 @@ describe "activity", ->
         assert.equal activity.title, "Assaf posted."
 
 
-    describe "HTML", ->
-
-      describe "full page", ->
-        statusCode = body = headers = null
-
-        before (done)->
-          headers = { "Accept": "text/html" }
-          request.get "http://localhost:3003/activity/fe936972", headers: headers, (_, response)->
-            { statusCode, headers, body } = response
-            done()
-
-        it "should return 200", ->
-          assert.equal statusCode, 200
-
-        it "should return an HTML document", ->
-          assert /text\/html/.test(headers['content-type'])
-          assert /^<!DOCTYPE/.test(body)
-
-      describe "partial", ->
-        statusCode = body = headers = null
-
-        before (done)->
-          headers =
-            "Accept":           "text/html"
-            "X-Requested-With": "XMLHttpRequest"
-          request.get "http://localhost:3003/activity/fe936972", headers: headers, (_, response)->
-            { statusCode, headers, body } = response
-            done()
-
-        it "should return 200", ->
-          assert.equal statusCode, 200
-
-        it "should return an HTML document fragment", ->
-          assert /text\/html/.test(headers['content-type'])
-          assert /<div/.test(body)
-          assert !(/html/.test(body))
-
-
-    describe "any content type", ->
-      statusCode = body = headers = null
-
-      before (done)->
-        headers = { "Accept": "*/*" }
-        request.get "http://localhost:3003/activity/fe936972", headers: headers, (_, response)->
-          { statusCode, headers, body } = response
-          done()
-
-      it "should return 200", ->
-        assert.equal statusCode, 200
-
-      it "should return an HTML document", ->
-        assert /text\/html/.test(headers['content-type'])
-        assert /<html/.test(body)
-
-
     describe "no such activity", ->
       statusCode = body = headers = null
 
       before (done)->
         headers = { "Accept": "*/*" }
-        request.get "http://localhost:3003/activity/f0000002", headers: headers, (_, response)->
+        request.get "http://localhost:3003/v1/activity/f0000002", headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
 
@@ -187,7 +134,7 @@ describe "activity", ->
         assert.equal statusCode, 404
 
       it "should return an error message", ->
-        assert.equal body, "Cannot GET /activity/f0000002"
+        assert.equal body, "Not Found"
 
 
     after search.teardown
@@ -207,10 +154,10 @@ describe "activity", ->
           es_index.refresh done
         
 
-    describe "JSON", ->
+    describe "", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        request.get "http://localhost:3003/activity", headers: headers, (_, response)->
+        request.get "http://localhost:3003/v1/activity", headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
 
@@ -239,7 +186,7 @@ describe "activity", ->
         for activity in items
           assert /^<div/.test(activity.html)
 
-      it "should include activity URL", ->
+      it "should include activity view URL", ->
         { items } = JSON.parse(body)
         for activity in items
           assert /^\/activity\/[0-9a-f]{8}$/.test(activity.url)
@@ -251,13 +198,13 @@ describe "activity", ->
 
       it "should return JSON url to full collection", ->
         { url } = JSON.parse(body)
-        assert.equal url, "/activity"
+        assert.equal url, "/v1/activity"
 
 
     describe "query", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        url = "http://localhost:3003/activity?query=NOT+assaf"
+        url = "http://localhost:3003/v1/activity?query=NOT+assaf"
         request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
@@ -278,13 +225,13 @@ describe "activity", ->
 
       it "should return JSON url to full collection", ->
         { url } = JSON.parse(body)
-        assert.equal url, "/activity"
+        assert.equal url, "/v1/activity"
 
 
     describe "limit", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        url = "http://localhost:3003/activity?limit=2"
+        url = "http://localhost:3003/v1/activity?limit=2"
         request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
@@ -297,7 +244,7 @@ describe "activity", ->
 
       it "should return link to next result set", ->
         { next } = JSON.parse(body)
-        assert.equal next, "/activity?limit=2&offset=2"
+        assert.equal next, "/v1/activity?limit=2&offset=2"
 
       it "should not return link to previous result set", ->
         { prev } = JSON.parse(body)
@@ -307,7 +254,7 @@ describe "activity", ->
     describe "offset", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        url = "http://localhost:3003/activity?offset=1&limit=1"
+        url = "http://localhost:3003/v1/activity?offset=1&limit=1"
         request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
@@ -319,17 +266,17 @@ describe "activity", ->
 
       it "should return link to next result set", ->
         { next } = JSON.parse(body)
-        assert.equal next, "/activity?limit=1&offset=2"
+        assert.equal next, "/v1/activity?limit=1&offset=2"
 
       it "should return link to previous result set", ->
         { prev } = JSON.parse(body)
-        assert.equal prev, "/activity?limit=1&offset=0"
+        assert.equal prev, "/v1/activity?limit=1&offset=0"
 
 
     describe "start", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        url = "http://localhost:3003/activity?start=2011-03-18T18:51:00Z"
+        url = "http://localhost:3003/v1/activity?start=2011-03-18T18:51:00Z"
         request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
@@ -344,7 +291,7 @@ describe "activity", ->
     describe "end", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        url = "http://localhost:3003/activity?end=2011-03-18T18:51:00Z"
+        url = "http://localhost:3003/v1/activity?end=2011-03-18T18:51:00Z"
         request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
@@ -358,7 +305,7 @@ describe "activity", ->
     describe "start/end", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        url = "http://localhost:3003/activity?start=2011-03-18T18:50:30Z&end=2011-03-18T18:51:30Z"
+        url = "http://localhost:3003/v1/activity?start=2011-03-18T18:50:30Z&end=2011-03-18T18:51:30Z"
         request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
@@ -380,7 +327,7 @@ describe "activity", ->
 
     before (done)->
       # Fire up the event source, we need to be connected to receive anything.
-      event_source = new EventSource("http://localhost:3003/activity/stream")
+      event_source = new EventSource("http://localhost:3003/v1/activity/stream")
       # Wait until we're connected, then create activities and have then sent to event source.
       event_source.onopen = ->
         file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
@@ -423,18 +370,18 @@ describe "activity", ->
         Activity.create id: "75b12975", actor: { displayName: "Assaf" }, verb: "tested", done
 
     it "should delete activity", (done)->
-      request.del "http://localhost:3003/activity/015f13c4", ->
+      request.del "http://localhost:3003/v1/activity/015f13c4", ->
         Activity.get "015f13c4", (error, doc)->
           assert !error && !doc
           done()
 
     it "should return 204", (done)->
-      request.del "http://localhost:3003/activity/015f13c4", (_, response)->
+      request.del "http://localhost:3003/v1/activity/015f13c4", (_, response)->
         assert.equal response.statusCode, 204
         done()
 
     it "should not fail if no such activity", (done)->
-      request.del "http://localhost:3003/activity/nosuch", (error, response)->
+      request.del "http://localhost:3003/v1/activity/nosuch", (error, response)->
         assert.equal response.statusCode, 204
         done()
 

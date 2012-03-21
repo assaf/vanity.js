@@ -9,24 +9,48 @@ body {
 }
 
 
-/* Multiple activities */
-ol.activities {
+/* -- Activity stream --
+ *
+ * These styles are used to render the activity stream as an ordered list of activities.
+ * The root element is OL.activities
+ */
+ol.stream {
   list-style: none;
   margin: 32px;
   padding: 0;
   width: 640px;
 }
-ol.activities>li {
-  margin: 0 0 12px 0;
-  padding: 0;
+ol.stream > li {
+  margin: 0;
+  padding: 8px 0 12px 0;
+}
+
+/* Use this style to highlight new activities added to the stream */
+.stream > li.highlight {
+  background-color: #ff8;
+  -webkit-transition-duration: 0ms;
+  -moz-transition-duration: 0ms;
+}
+.stream > li {
+ background-color: #fff;
+ -webkit-transition: background-color;
+ -webkit-transition-timing-function: ease-in;
+ -webkit-transition-duration: 2000ms;
+ -moz-transition: background-color;
+ -moz-transition-timing-function: ease-in;
+ -moz-transition-duration: 2000ms;
 }
 
 
+/* -- Activity --
+ *
+ * These styles are used to render a single activity anywhere (not just inside a stream).
+ * The root element is DIV.activity
+ */
 .activity {
   position: relative;
   margin: 0;
-  padding: 0px 0 12px 32px;
-  border-bottom: 1px solid #ddd;
+  padding: 0px 0 0 32px;
 }
 /* Make entire activity clickable to permalink, but without breaking actual links or images */
 .activity a {
@@ -76,8 +100,9 @@ ol.activities>li {
 }
 
 
-
-/* Frequency charts */
+/* -- Charts and stuff --
+ *
+ */
 #charts {
   position: relative;
   padding: 10px 0;

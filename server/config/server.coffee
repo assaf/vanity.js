@@ -1,3 +1,4 @@
+process.env.NODE_ENV ||= "development"
 Express   = require("express")
 FS        = require("fs")
 
@@ -17,6 +18,12 @@ server.configure ->
   # Body and query parameters
   server.use Express.bodyParser()
   server.use Express.query()
+
+server.configure "production", ->
+  server.use Express.logger()
+
+server.configure "development", ->
+  server.use Express.logger()
 
 server.configure "test", ->
   server.error (error, req, res, next)->

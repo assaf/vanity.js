@@ -61,7 +61,7 @@ Activity =
     unless actor && (actor.displayName || actor.id)
       throw new Error("Activity requires actor")
     # Each activity has a timestamp, default to now.
-    published ||= new Date()
+    published = Date.create(published)
 
     # If no activity specified, we use the activity content to create a unique ID.
     unless id

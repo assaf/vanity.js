@@ -1,3 +1,4 @@
+require("./helper") # must be at top
 assert = require("assert")
 File   = require("fs")
 name   = require("../lib/names")

@@ -1,4 +1,4 @@
-{ setup } = require("./helper")
+{ setup } = require("./helper") # must be at top
 assert    = require("assert")
 Browser   = require("zombie")
 Activity  = require("../models/activity")

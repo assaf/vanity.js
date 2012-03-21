@@ -31,7 +31,7 @@ instead.
 ### Create A New Activity
 
 ```
-POST /activity
+POST /v1/activity
 ```
 
 The request must be a JSON document providing at the very least an actor and verb.
@@ -45,7 +45,7 @@ If the request document is invalid, the server returns status code 400 with a sh
 ### Retrieve Specific Activity
 
 ```
-GET /activity/:id
+GET /v1/activity/:id
 ```
 
 The response returns a single activity as either JSON document or HTML document fragment (a `div` element).
@@ -54,7 +54,7 @@ The response returns a single activity as either JSON document or HTML document 
 ### Querying Recent Activities
 
 ```
-GET /activity
+GET /v1/activity
 ```
 
 The response returns a JSON document with a set of activities that match the query criteria, starting with the most
@@ -71,7 +71,7 @@ For example, to retrieve all the activities performed by David that do not inclu
 of March:
 
 ```
-GET /activity?query=david+AND+NOT+posted&start=2012-03-01&end=2012-04-01
+GET /v1/activity?query=david+AND+NOT+posted&start=2012-03-01&end=2012-04-01
 ```
 
 The response document contains the following properties:
@@ -85,7 +85,7 @@ The response document contains the following properties:
 ### Activity Stream
 
 ```
-GET /activity
+GET /v1/activity
 ```
 
 Returns a stream of activities as they are published to the server.  The response is a [server-sent event stream](http://dev.w3.org/html5/eventsource/#concept-event-stream-reconnection-time).
@@ -103,6 +103,6 @@ events.addEventListener("activity", function(event) {
 ### Deleting An Activity
 
 ```
-DELETE /activity/:id
+DELETE /v1/activity/:id
 ```
 

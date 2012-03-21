@@ -45,11 +45,11 @@ search.teardown ->
     published = Date.create().beginningOfDay().addDays(-days).addHours(hour).addMinutes(Math.random() * 60)
 
     # Actor name and verb
-    actor = name(Math.random() * 10000)
+    actor = name(Math.random() * COUNT / 3)
     verb = VERBS[Math.floor(Math.random() * VERBS.length)]
     assert actor && verb
 
     queue.push actor: { displayName: actor }, verb: verb, published: published
 
-process.on "exit", ->
+queue.empty = ->
   console.log "Done"
