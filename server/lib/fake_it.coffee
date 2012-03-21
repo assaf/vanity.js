@@ -1,4 +1,5 @@
 assert    = require("assert")
+Async     = require("async")
 BTree     = require("./names/b_tree")
 name      = require("./names")
 Activity  = require("../models/activity")
@@ -24,8 +25,16 @@ assert.equal cumul, 100
 hourly = hourly_dist.done()
 
 
+# Only run so many concurrentl
+queue = Async.queue((activity, done)->
+  Activity.create activity, done
+, 5)
+
+
 # Delete and re-create index
+console.log "Deleting index ..."
 search.teardown ->
+  console.log "Populating ElasticSearch with #{COUNT} activities ..."
 
   for i in [0...COUNT]
     # Random published day within the past DAYS, hour based on the distribution.
@@ -40,4 +49,7 @@ search.teardown ->
     verb = VERBS[Math.floor(Math.random() * VERBS.length)]
     assert actor && verb
 
-    Activity.create actor: { displayName: actor }, verb: verb, published: published
+    queue.push actor: { displayName: actor }, verb: verb, published: published
+
+process.on "exit", ->
+  console.log "Done"
