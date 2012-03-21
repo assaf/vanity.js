@@ -212,6 +212,24 @@ Activity =
             activities: activities
 
 
+  frequency: (query, callback)->
+    params =
+      query:
+        query_string:
+          query: query || "*"
+      size:   10000
+      sort:   { published: "desc" }
+      fields: ["published", "verb"]
+    # And ... go!
+    search (es_index)->
+      es_index.search params, (error, results)->
+        if error
+          callback error
+        else
+          rows = results.hits.map((hit)-> { date: hit.fields.published, verb: hit.fields.verb })
+          callback null, rows
+
+
   # -- Activity stream events --
 
   emit: (event, data)->

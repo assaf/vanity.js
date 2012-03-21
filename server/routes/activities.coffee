@@ -99,6 +99,11 @@ server.get "/activity/stream", (req, res, next)->
     Activity.removeListener "activity", send
 
 
+server.get "/activity/frequency", (req, res, next)->
+  Activity.frequency req.query.params, (error, results)->
+    res.send results
+
+
 # Retrieve single activity, either as JSON or HTML.
 server.get "/activity/:id", (req, res, next)->
   Activity.get req.params.id, (error, activity)->
