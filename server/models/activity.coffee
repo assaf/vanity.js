@@ -73,6 +73,27 @@ Activity =
         url:         object.url?.toString()
         image:       object.image
 
+    # Create title from actor verb object combination
+    title = [doc.actor.displayName, doc.verb]
+    if doc.object
+      title.push doc.object.displayName
+    doc.title = title.join(" ") + "."
+
+    # Create content similar to title but with links.
+    content =[]
+    if doc.actor.url
+      content.push "<a href=\"#{doc.actor.url}\">#{doc.actor.displayName}</a>"
+    else
+      content.push doc.actor.displayName
+    content.push verb
+    if doc.object?.url
+      content.push "<a href=\"#{doc.object.url}\">#{doc.object.displayName}</a>"
+    else if doc.object
+      content.push doc.object.displayName
+    doc.content = content.join(" ") + "."
+    if doc.object?.image
+      doc.content + "<img src=\"#{doc.object.image.url}\">"
+
     # If location provided we need some geocoding action.
     if location
       geocode location, (error, result)->

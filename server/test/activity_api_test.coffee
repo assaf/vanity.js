@@ -102,6 +102,10 @@ describe "activity", ->
         assert.equal activity.id, "fe936972"
         assert.equal activity.actor.displayName, "Assaf"
 
+      it "should include content", ->
+        activity = JSON.parse(body)
+        assert.equal activity.content, "Assaf posted."
+
       it "should include HTML representation", ->
         activity = JSON.parse(body)
         assert /<div/.test(activity.html)

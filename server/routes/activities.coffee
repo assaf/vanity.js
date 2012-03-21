@@ -124,17 +124,10 @@ server.del "/activity/:id", (req, res, next)->
       res.send 204
 
 
-# Adds url, title and html to activity and returns it.
+# Adds url and HTML presentation.
 enhance = (activity)->
   # URL to activity view
   activity.url = "/activity/#{activity.id}"
-
-  # Title consists of actor, verb and object name/URL
-  title = "#{activity.actor.displayName} #{activity.verb}"
-  object = activity.object
-  if object && (object.url || object.displayName)
-    title += " #{object.displayName || object.url}"
-  activity.title = "#{title}."
 
   unless Activity.template
     Activity.template = Express.view.compile("_activity.eco", {}, null, root: server.settings.views).fn

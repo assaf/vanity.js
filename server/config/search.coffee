@@ -33,9 +33,11 @@ MAPPINGS =
       id:
         type: "string"
         index: "not_analyzed"
+        include_in_all: false
       actor:
         type: "object"
         path: "just_name"
+        include_in_all: false
         properties:
           id:
             type: "string"
@@ -49,12 +51,13 @@ MAPPINGS =
             index_name: "actor_url"
           image:
             type: "object"
-            index: "no"
       verb:
         type: "string"
+        include_in_all: false
       object:
         type: "object"
         path: "just_name"
+        include_in_all: false
         properties:
           id:
             type: "string"
@@ -68,9 +71,9 @@ MAPPINGS =
             index_name: "object_url"
           image:
             type: "object"
-            index: "no"
       labels:
         type: "string"
+        include_in_all: true
       location:
         type: "geo_point"
         lat_lon: true
@@ -78,6 +81,15 @@ MAPPINGS =
           displayName:
             type: "string"
             index_name: "location"
+            include_in_all: true
+      title:
+        type: "string"
+        index: "no"
+        include_in_all: true
+      content:
+        type: "string"
+        index: "no"
+        include_in_all: false
       published:
         type: "date"
 
