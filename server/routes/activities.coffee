@@ -124,7 +124,7 @@ server.del "/activity/:id", (req, res, next)->
       res.send 204
 
 
-# Adds url, title and content to activity and returns it.
+# Adds url, title and html to activity and returns it.
 enhance = (activity)->
   # URL to activity view
   activity.url = "/activity/#{activity.id}"
@@ -138,6 +138,6 @@ enhance = (activity)->
 
   unless Activity.template
     Activity.template = Express.view.compile("_activity.eco", {}, null, root: server.settings.views).fn
-  activity.content = Activity.template(activity).replace(/\s+/g, " ").replace(/>\s</g, "><")
+  activity.html = Activity.template(activity).replace(/\s+/g, " ").replace(/>\s</g, "><")
   return activity
 

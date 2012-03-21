@@ -1,4 +1,3 @@
-## Activity Stream API
 
 Activities are represented as JSON objects with the following properties:
 
@@ -8,7 +7,8 @@ Activities are represented as JSON objects with the following properties:
 * `object`    - The object of this activity (e.g. the uploaded file).
 * `url`       - Relative path to the HTML page of this activity (read only).
 * `title`     - Short JSON/HTML presentation of this activity (read only).
-* `content`   - Detailed JSON/HTML presentation of this activity (read only).
+* `content`   - Detailed JSON/HTML presentation of this activity.
+* `html`      - HTML presentation of the activity (read only).
 * `published` - Timestamp when activity was published (ISO3339).
 
 Each activity must have a universally unique identifier.  If you attempt to create two activities with the same

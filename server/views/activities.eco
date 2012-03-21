@@ -4,6 +4,6 @@
 </form>
 <ol class="activities">
   <% for activity in @items: %>
-  <li><%- activity.content %></li>
+  <li><%- activity.html %></li>
   <% end %>
 </ol>

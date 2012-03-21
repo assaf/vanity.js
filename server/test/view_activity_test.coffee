@@ -252,7 +252,7 @@ describe "activity", ->
         browser.visit "/activity/#{activity_id}", done
 
     it "should show activity timestamp in current locale", ->
-      assert.equal browser.query(".activity .timestamp").textContent, "Tue Mar 13 2012 23:33:44 GMT-0700 (PDT)"
+      assert.equal browser.query(".activity .published").textContent, "Tue Mar 13 2012 23:33:44 GMT-0700 (PDT)"
 
 
   # -- Activity location --
@@ -267,8 +267,8 @@ describe "activity", ->
         browser.visit "/activity/#{activity_id}", done
 
     it "should show activity location following timestamp", ->
-      assert browser.query(".activity .timestamp + .location")
+      assert browser.query(".activity .published + .location")
 
     it "should show activity location", ->
-      assert.equal browser.query(".activity .location").textContent, "From San Francisco, CA, USA"
+      assert.equal browser.query(".activity .location").textContent, "San Francisco, CA, USA"
 

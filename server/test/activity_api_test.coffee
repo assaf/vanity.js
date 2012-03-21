@@ -104,7 +104,7 @@ describe "activity", ->
 
       it "should include HTML representation", ->
         activity = JSON.parse(body)
-        assert /<div/.test(activity.content)
+        assert /<div/.test(activity.html)
 
       it "should include activity URL", ->
         activity = JSON.parse(body)
@@ -233,7 +233,7 @@ describe "activity", ->
       it "should include HTML representation", ->
         { items } = JSON.parse(body)
         for activity in items
-          assert /^<div/.test(activity.content)
+          assert /^<div/.test(activity.html)
 
       it "should include activity URL", ->
         { items } = JSON.parse(body)
@@ -402,7 +402,7 @@ describe "activity", ->
         activity = JSON.parse(event.data)
         assert /\/activity\//.test(activity.url)
         assert /(Assaf|David|Jerome) (started|continued|completed)\./.test(activity.title)
-        assert /<div/.test(activity.content)
+        assert /<div/.test(activity.html)
 
     after search.teardown
   
