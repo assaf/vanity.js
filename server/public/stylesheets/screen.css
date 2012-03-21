@@ -1,5 +1,5 @@
 @import url(http://fonts.googleapis.com/css?family=Yanone+Kaffeesatz:400,700);
-  
+ 
 body {
   width: 960px;
   margin: 40px auto;
@@ -79,6 +79,7 @@ ol.activities>li {
 
 /* Frequency charts */
 #charts {
+  position: relative;
   padding: 10px 0;
   font-family: "Yanone Kaffeesatz";
 }

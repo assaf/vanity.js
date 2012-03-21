@@ -31,6 +31,7 @@
 <script src="/javascripts/d3.v2.min.js"></script>
 <script src="/javascripts/tesseract.min.js"></script>
 <script>
+var DAYS = ["S", "M", "T", "W", "T ", "F", "S "];
 d3.json("/activity/frequency", function(activities) {
 
   // Turn raw data into a tesseract object.
@@ -42,7 +43,7 @@ d3.json("/activity/frequency", function(activities) {
   var all   = activities.groupAll(),
       date  = activities.dimension(function(d) { return d3.time.day(d.date); }),
       dates = date.group(),
-      day   = activities.dimension(function(d) { return d.date.getDay(); }),
+      day   = activities.dimension(function(d) { return DAYS[d.date.getDay()]; }),
       days  = day.group(),
       hour  = activities.dimension(function(d) { return d.date.getHours() + d.date.getMinutes() / 60; }),
       hours = hour.group(Math.floor),
@@ -61,11 +62,11 @@ d3.json("/activity/frequency", function(activities) {
       .dimension(hour).group(hours)
       .x(d3.scale.linear().domain([0, 24]).rangeRound([0, 10 * 24])),
     barChart() // Day
-      .dimension(day).group(days)
-      .x(d3.scale.linear().domain([0, 7]).rangeRound([0, 10 * 7])),
+      .dimension(day).group(days).round(function(d) { return Math.floor(d / 10) * 10 })
+      .x(d3.scale.ordinal().domain(DAYS).range(d3.range(0, 80, 10))),
     barChart()
-      .dimension(verb).group(verbs).round(d3.time.day.round)
-      .x(d3.time.scale().domain([0, 20]).rangeRound([0, 10 * 20])),
+      .dimension(verb).group(verbs)
+      .x(d3.scale.linear().domain([0, 20]).rangeRound([0, 10 * 20])),
     barChart()
       .dimension(date).group(dates).round(d3.time.day.round)
       .x(d3.time.scale().domain([start, end]).rangeRound([0, 10 * 90]))
@@ -103,7 +104,7 @@ d3.json("/activity/frequency", function(activities) {
   function barChart() {
     if (!barChart.id) barChart.id = 0;
 
-    var margin = { top: 10, right: 10, bottom: 20, left: 10 },
+    var margin = { top: 10, right: 10, bottom: 20, left:10 },
         x,
         y = d3.scale.linear().range([100, 0]),
         id = barChart.id++,
@@ -115,7 +116,7 @@ d3.json("/activity/frequency", function(activities) {
         round;
 
     function chart(div) {
-      var width = x.range()[1],
+      var width = d3.last(x.range()),
           height = y.range()[0];
 
       y.domain([0, group.top(1)[0].value]);
