@@ -84,7 +84,7 @@ describe "activity", ->
         params =
           actor:
             displayName:  "Assaf"
-            url:          "http://labnotes.org"
+            url:          "http://labnotes.org/"
             image:
               url:        "http://awe.sm/5hWp5"
           verb:           "posted"
@@ -92,7 +92,7 @@ describe "activity", ->
           browser.visit "/activity/#{activity_id}", done
 
       it "should link to actor", ->
-        assert.equal browser.query(".activity .actor a").getAttribute("href"), "http://labnotes.org"
+        assert.equal browser.query(".activity .actor a").getAttribute("href"), "http://labnotes.org/"
 
       it "should place display name inside link", ->
         assert.equal browser.query(".activity .actor a .name").textContent, "Assaf"

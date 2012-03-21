@@ -6,6 +6,7 @@
 Crypto            = require("crypto")
 { EventEmitter }  = require("events")
 Express           = require("express")
+URL               = require("url")
 search            = require("../config/search")
 server            = require("../config/server")
 name              = require("../lib/names")
@@ -14,6 +15,25 @@ geocode           = require("../lib/geocode")
 
 # For dispatching events, e.g. notify activity got created.
 events = new EventEmitter()
+
+
+PROTOCOLS = ["http:", "https:", "mailto:"]
+
+# Parse and return URL.  Throws error if URL is not valid or contains unsupported protocol (e.g. javascript:).
+sanitize_url = (url)->
+  return undefined unless url
+  url = URL.parse(url, false, true)
+  unless ~PROTOCOLS.indexOf(url.protocol)
+    throw new Error("Only http/s and mailto URLs supported")
+  return URL.format(url)
+
+# Sanitizes the image object, returning one that has sanitized URL and wight/height numbers.  May return undefined.
+sanitize_image = (image)->
+  return undefined unless image && image.url
+  result = url: sanitize_url(image.url)
+  result.width = parseInt(image.width, 10) if image.width
+  result.height = parseInt(image.height, 10) if image.height
+  return result
 
 
 Activity =
@@ -59,9 +79,9 @@ Activity =
       actor:
         # If actor name is not specified, we can make one up based on actor ID.  This is used when you have an
         # anonymized activity stream, but still want to see related activities by same visitor.
-        displayName:  (actor.displayName || name(actor.id)).toString()
-        url:          actor.url?.toString()
-        image:        actor.image
+        displayName:  actor.displayName || name(actor.id)
+        url:          sanitize_url(actor.url)
+        image:        sanitize_image(actor.image)
       verb: verb.toString()
       published: new Date(published).toISOString()
 
@@ -69,9 +89,9 @@ Activity =
     # one, but we consider the activity unique based on object URL (see SHA above).
     if object && (object.displayName || object.url)
       doc.object =
-        displayName: (object.displayName || object.url).toString()
-        url:         object.url?.toString()
-        image:       object.image
+        displayName: object.displayName || sanitize_url(object.url)
+        url:         sanitize_url(object.url)
+        image:       sanitize_image(object.image)
 
     # Create title from actor verb object combination
     title = [doc.actor.displayName, doc.verb]
