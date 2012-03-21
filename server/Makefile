@@ -3,6 +3,11 @@ default :
 	mocha -R list 
 
 
+# Run this in production
+install :
+	npm install
+
+
 # Setup everything
 setup :
 	npm install

@@ -20,7 +20,6 @@ server.post "/v1/activity", (req, res, next)->
     )
     res.send " ", location: "/v1/activity/#{id}", 201
   catch error
-    console.log error
     res.send error.message, 400
 
 
