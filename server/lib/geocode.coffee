@@ -22,24 +22,27 @@ map_result = (result)->
 # Geocodes free-form location string.
 geocode = (location, callback)->
   url = "http://maps.googleapis.com/maps/api/geocode/json?" + QS.stringify(address: location, sensor: false)
-  request url: url, timeout: TIMEOUT, (error, response, body)->
-    if error
-      callback error
-      return
+  try
+    request url: url, timeout: TIMEOUT, (error, response, body)->
+      if error
+        callback error
+        return
 
-    # This will fail on any error status code, and also if we get back HTML page instead of JSON object.  APIs are full
-    # of surprises.
-    if response.statusCode == 200 && /^application\/json/.test(response.headers["content-type"])
-      data = JSON.parse(body)
-      if data.status == "OK"
-        callback null, map_result(data.results[0])
-      else if data.status == "ZERO_RESULTS"
-        callback null
+      # This will fail on any error status code, and also if we get back HTML page instead of JSON object.  APIs are full
+      # of surprises.
+      if response.statusCode == 200 && /^application\/json/.test(response.headers["content-type"])
+        data = JSON.parse(body)
+        if data.status == "OK"
+          callback null, map_result(data.results[0])
+        else if data.status == "ZERO_RESULTS"
+          callback null
+        else
+          # Over limit, but could be some other error code.
+          callback new Error(data.status)
       else
-        # Over limit, but could be some other error code.
-        callback new Error(data.status)
-    else
-      callback new Error("#{response.statusCode}: #{body.truncate(50)}")
+        callback new Error("#{response.statusCode}: #{body.truncate(50)}")
+  catch error
+    callback error
   return
 
 

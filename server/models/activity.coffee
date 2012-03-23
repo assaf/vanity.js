@@ -79,6 +79,7 @@ Activity =
       actor:
         # If actor name is not specified, we can make one up based on actor ID.  This is used when you have an
         # anonymized activity stream, but still want to see related activities by same visitor.
+        id:           actor.id
         displayName:  actor.displayName || name(actor.id)
         url:          sanitize_url(actor.url)
         image:        sanitize_image(actor.image)

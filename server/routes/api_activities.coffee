@@ -74,10 +74,7 @@ server.get "/v1/activity", (req, res)->
       prev.offset = Math.max(params.offset - results.limit, 0)
       result.prev = "/v1/activity?" + QS.stringify(prev)
 
-    if req.accepts("html")
-      res.render "activities", result
-    else
-      res.send result, 200
+    res.send result, 200
   
 
 # Server-sent events activity stream.

@@ -1,5 +1,5 @@
-Request   = require("request")
-name      = require("./names")
+Vanity   = require("vanity")
+name     = require("./names")
 
 
 # Using this set of verbs
@@ -11,4 +11,6 @@ verb = VERBS[Math.floor(Math.random() * VERBS.length)]
 activity =
   actor: { displayName: actor }
   verb: verb
-Request.post "http://localhost:3000/v1/activity", json: activity
+vanity = new Vanity(host: "localhost:3000")
+vanity.on "error", console.error
+vanity.activity activity

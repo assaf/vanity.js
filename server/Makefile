@@ -1,5 +1,9 @@
+default : test
+.PHONY : test setup
+
+
 # Run all tests
-default :
+test :
 	mocha -R list 
 
 
@@ -31,5 +35,5 @@ es-view :
 	open http://localhost:9200/_plugin/head/
 
 # Publish a fake activity using the API
-publish :
+test-publish :
 	coffee lib/publish

@@ -14,7 +14,7 @@ Browser.site = "localhost:3003"
 # To capture and record API calls, run with environment variable RECORD=true
 Replay.fixtures = "#{__dirname}/replay"
 Replay.networkAccess = false
-Replay.localhost "vanity.js"
+Replay.localhost "localhost"
 Replay.ignore "mt1.googleapis.com"
 
 

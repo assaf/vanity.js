@@ -1,17 +1,11 @@
-# Run all tests in all modules
 default : test
+.PHONY : test setup
+
+
+# Run all tests in all modules
 test :
-	for dir in */Makefile ; do \
-		cd $$(dirname $${dir}) ; \
-	 	make test || exit 1 ; \
-	 	cd - ; \
-	done
+	for make in */Makefile ; do cd $$(dirname $${make}) ; make test || exit 1 ; cd - ; done
 
 # Setup all modules
 setup :
-	for dir in */Makefile ; do \
-		cd $$(dirname $${dir}) ; \
-	 	make setup || exit 1 ; \
-	 	cd - ; \
-	done
-
+	for make in */Makefile ; do cd $$(dirname $${make}) ; make setup || exit 1 ; cd - ; done

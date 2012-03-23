@@ -1,0 +1,31 @@
+{ "name": "vanity",
+  "version": "0.1.0",
+  "description": "Vanity Node.js client",
+  "author": "Assaf Arkin <assaf@labnotes.org> (http://labnotes.org/)",
+  "main": "vanity",
+  "scripts": {
+    "test":   "mocha -R spec"
+  },
+  "engines": {
+    "node": ">= 0.6.0"
+  },
+  "dependencies": {
+    "request":          "~2.9.153"
+  },
+  "devDependencies": {
+    "mocha":            "~0.14"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/assaf/vanity.js"
+  },
+  "bugs": {
+    "url": "http://github.com/assaf/vanity.js/issues"
+  },
+  "licenses": [
+    { "type": "MIT",
+      "url": "http://github.com/assaf/vanity.js/blob/master/MIT-LICENSE"
+    }
+  ]
+}
+
