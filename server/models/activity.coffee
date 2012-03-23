@@ -183,7 +183,7 @@ Activity =
           query: options.query || "*"
       from:   options.offset || 0
       size:   Math.min(options.limit || 250, 250)
-      sort:   { published: "desc" }
+      sort:   { published: { order: "desc" } }
     # Only if specified
     params.from = options.offset if options.offset
     # Add filter for start/end time, if specified

@@ -90,8 +90,10 @@ MAPPINGS =
         type: "string"
         index: "no"
         include_in_all: false
-      published:
-        type: "date"
+    _timestamp:
+      enabled: true
+      path:    "published"
+        
 
 
 # Eventually set to Elastical.Index object.
