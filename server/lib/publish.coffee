@@ -10,7 +10,7 @@ actor = name(Math.random() * 1000)
 verb = VERBS[Math.floor(Math.random() * VERBS.length)]
 activity =
   actor: { displayName: actor }
-  verb: verb
+  verb: "!!! #{verb}" # verb
 vanity = new Vanity(host: "localhost:3000")
 vanity.on "error", console.error
 vanity.activity activity

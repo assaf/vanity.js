@@ -1,4 +1,5 @@
-<div id="activity-<%= @id %>" class="activity">
+<div id="activity-<%= @id %>" class="activity" data-verb="<%= @verb %>">
+  <span class="color"></span>
   <a href="<%= @url %>" class="permalink"></a> 
   <span class="actor">
     <% if @actor.url : %><a href="<%= @actor.url %>"><% end %>

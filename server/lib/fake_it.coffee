@@ -42,7 +42,7 @@ search.teardown ->
     assert days >= 0 && days < DAYS
     hour = hourly(Math.random() * 100)
     assert hour >= 0 && hour < 24
-    published = Date.create().beginningOfDay().addDays(-days).addHours(hour).addMinutes(Math.random() * 60)
+    published = Date.create().addDays(-days).addHours(-hour).addMinutes(-Math.random() * 60)
 
     # Actor name and verb
     actor = name(Math.random() * COUNT / 3)

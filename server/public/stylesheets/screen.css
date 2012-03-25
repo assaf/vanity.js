@@ -16,13 +16,18 @@ body {
  */
 ol.stream {
   list-style: none;
-  margin: 32px;
+  margin: 0;
   padding: 0;
   width: 640px;
+  float: left;
 }
 ol.stream > li {
   margin: 0;
   padding: 8px 0 12px 0;
+}
+ol.stream + aside {
+  float: right;
+  width: 240px;
 }
 
 /* Use this style to highlight new activities added to the stream */
@@ -50,7 +55,15 @@ ol.stream > li {
 .activity {
   position: relative;
   margin: 0;
-  padding: 0px 0 0 32px;
+  padding: 0px 0 0 48px;
+}
+.activity .color {
+  position: absolute;
+  left: 4px;
+  width: 8px;
+  top: 0px;
+  bottom: 0px;
+  background-color: #ccc;
 }
 /* Make entire activity clickable to permalink, but without breaking actual links or images */
 .activity a {
@@ -62,8 +75,10 @@ ol.stream > li {
   position: relative;
 }
 .activity .permalink {
+  width: 600px;
   display: block;
   position: absolute;
+  left: 0px;
   z-index: 1;
   width: 100%;
   height: 100%;
@@ -100,6 +115,41 @@ ol.stream > li {
 }
 
 
+/* -- Verb selector --
+ */
+.verb-selector {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.verb-selector li {
+  margin-bottom: 8px;
+}
+.verb-selector li a {
+  display: inline-block;
+  padding: 2px 0 4px 12px;
+  background-color: #ccc;
+  border-radius: 8px 0 0 8px;
+  width: 2.5em;
+}
+.verb-selector li a:after {
+  content: "On";
+}
+.verb-selector li a.hide {
+  background-color: #eee;
+}
+.verb-selector li a.hide:after {
+  content: "Off";
+}
+.verb-selector li span {
+  display: inline-block;
+  padding: 2px 8px 4px 8px;
+  border-radius: 0 8px 8px 0;
+  margin-left: 2px;
+  width: 8em;
+}
+
+
 /* -- Charts and stuff --
  *
  */
@@ -111,8 +161,19 @@ ol.stream > li {
 
 .chart {
   display: inline-block;
-  height: 151px;
   margin-bottom: 20px;
+}
+
+.chart.verbs rect {
+  fill: white;
+  opacity: 0.5;
+}
+.chart.verbs .values text {
+  fill: white;
+}
+
+.chart.verbs text.label {
+  fill: black;
 }
 
 .reset {
