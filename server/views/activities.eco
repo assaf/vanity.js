@@ -29,7 +29,7 @@ $(function() {
       if (showing == undefined)
         showing = verbsShowing["other"];
       return showing;
-    })
+    });
 
     // For each activity we add an LI element.  To highlight, we set the class
     // `highlight` and then quickly remove it, which causes a CSS transition.
@@ -94,7 +94,7 @@ $(function() {
     // For each new verb we add an LI and inside a link to show/hide and a span
     // to show the color-coded verb name.
     var list = d3.select("#verbs"),
-        selection = list.selectAll("li").data(with_other),
+        selection = list.selectAll("li").data(with_other, function(d) { return d.key }),
         li = selection.enter().append("li");
     li.append("a")
       .attr("class", "show")

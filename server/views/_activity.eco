@@ -26,4 +26,9 @@
     <span class="published"><%= new Date(@published).toLocaleString() %></span>
     <% if @location && @location.displayName: %><span class="location"><%= @location.displayName %></span><% end %>
   </span>
+  <% if @labels?.length: %>
+    <span class="labels">
+      <% for label in @labels: %><span><%= label %></span><% end %>
+    </span>
+  <% end %>
 </div>

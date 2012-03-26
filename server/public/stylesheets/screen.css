@@ -113,6 +113,21 @@ ol.stream + aside {
 .activity .location:before {
   content: " from "
 }
+.activity .labels {
+  display: block;
+  font-size: 12px;
+  font-weight: 200;
+  margin: 0;
+  padding: 0;
+}
+.activity .labels:before {
+  content: "Labeled:"
+}
+.activity .labels span {
+  display: inline;
+  margin-left: 0.5em;
+  padding: 0;
+}
 
 
 /* -- Verb selector --
