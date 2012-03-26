@@ -3,10 +3,23 @@ process.env.NODE_ENV = "test"
 Browser   = require("zombie")
 Replay    = require("replay")
 server    = require("../config/server")
+Activity  = require("../models/activity")
 
 
-setup = (done)->
-  server.listen 3003, done
+Helper =
+  setup: (callback)->
+    server.listen 3003,callback
+
+  newIndex: (callback)->
+    Activity.deleteIndex (error)->
+      if error
+        throw error
+      else
+        Activity.createIndex (error)->
+          if error
+            throw error
+          else
+            callback()
 
 Browser.site = "localhost:3003"
 
@@ -18,4 +31,4 @@ Replay.localhost "localhost"
 Replay.ignore "mt1.googleapis.com"
 
 
-exports.setup = setup
+module.exports = Helper

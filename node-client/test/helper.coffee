@@ -1,40 +1,48 @@
 process.env.NODE_ENV = "test"
 
+Asynch    = require("async")
 Replay    = require("replay")
 Request   = require("request")
 server    = require("../../server/config/server")
-search    = require("../../server/config/search")
+Activity  = require("../../server/models/activity")
 
 
 Helper =
   # Fire up the Web server
-  setup: (done)->
-    search ->
-      server.listen 3003, (error)->
-        if error
-          throw error
-        else
-          done()
+  setup: (callback)->
+    server.listen 3003, (error)->
+      if error
+        throw error
+      else
+        callback()
 
-  # Deletes the search index
-  teardown: (done)->
-    search.teardown done
+  newIndex: (callback)->
+    # Start out by deleting any index from previous run
+    Activity.deleteIndex (error)->
+      if error
+        throw error
+      else
+        Activity.createIndex (error)->
+          if error
+            throw error
+          else
+            callback()
 
   # Returns all activities that match the search criteria.  Can also call with just callback.
   search: (query, callback)->
     [query, callback] = [null, query] unless callback
     # Give ElasticSearch some time to sort itself before proceeding
-     setTimeout ->
-      search (es_search)->
-        es_search.refresh ->
-          Request.get "http://localhost:3003/v1/activity", (error, response, body)->
-            if error
-              throw error
-            else if response.statusCode == 200
-              callback JSON.parse(body).items
-            else
-              throw new Error("Activity API returned #{response.statusCode}")
+    setTimeout ->
+      Activity.index().refresh ->
+        Request.get "http://localhost:3003/v1/activity", (error, response, body)->
+          if error
+            throw error
+          else if response.statusCode == 200
+            callback JSON.parse(body).items
+          else
+            throw new Error("Activity API returned #{response.statusCode}")
     , 100
+
 
 # To capture and record API calls, run with environment variable RECORD=true
 Replay.fixtures = "#{__dirname}/replay"

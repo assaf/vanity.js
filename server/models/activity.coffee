@@ -12,9 +12,10 @@
 
 Crypto            = require("crypto")
 { EventEmitter }  = require("events")
+Elastical         = require("elastical")
 Express           = require("express")
 URL               = require("url")
-search            = require("../config/search")
+config            = require("../config")
 server            = require("../config/server")
 name              = require("../lib/names")
 geocode           = require("../lib/geocode")
@@ -27,7 +28,7 @@ events = new EventEmitter()
 PROTOCOLS = ["http:", "https:", "mailto:"]
 
 # Parse and return URL.  Throws error if URL is not valid or contains unsupported protocol (e.g. javascript:).
-sanitize_url = (url)->
+sanitizeUrl = (url)->
   return undefined unless url
   url = URL.parse(url, false, true)
   unless ~PROTOCOLS.indexOf(url.protocol)
@@ -35,9 +36,9 @@ sanitize_url = (url)->
   return URL.format(url)
 
 # Sanitizes the image object, returning one that has sanitized URL and wight/height numbers.  May return undefined.
-sanitize_image = (image)->
+sanitizeImage = (image)->
   return undefined unless image && image.url
-  result = url: sanitize_url(image.url)
+  result = url: sanitizeUrl(image.url)
   result.width = parseInt(image.width, 10) if image.width
   result.height = parseInt(image.height, 10) if image.height
   return result
@@ -159,8 +160,8 @@ Activity =
         # anonymized activity stream, but still want to see related activities by same visitor.
         id:           actor.id
         displayName:  actor.displayName || name(actor.id)
-        url:          sanitize_url(actor.url)
-        image:        sanitize_image(actor.image)
+        url:          sanitizeUrl(actor.url)
+        image:        sanitizeImage(actor.image)
       verb: verb.toString()
       published: new Date(published).toISOString()
 
@@ -171,9 +172,9 @@ Activity =
     # one, but we consider the activity unique based on object URL (see SHA above).
     if object && (object.displayName || object.url)
       doc.object =
-        displayName: object.displayName || sanitize_url(object.url)
-        url:         sanitize_url(object.url)
-        image:       sanitize_image(object.image)
+        displayName: object.displayName || sanitizeUrl(object.url)
+        url:         sanitizeUrl(object.url)
+        image:       sanitizeImage(object.image)
 
     # Create title from actor verb object combination
     title = [doc.actor.displayName, doc.verb]
@@ -216,20 +217,18 @@ Activity =
     options =
       create: false
       id:     doc.id
-    search (es_index)->
-      es_index.index "activity", doc, options, (error)->
-        if error
-          Activity.emit "error", error
-          callback error if callback
-        else
-          Activity.emit "activity", doc
-          callback null, doc.id if callback
+    Activity.index().index "activity", doc, options, (error)->
+      if error
+        Activity.emit "error", error
+        callback error if callback
+      else
+        Activity.emit "activity", doc
+        callback null, doc.id if callback
 
 
   # Deletes activity by id.
   delete: (id, callback)->
-    search (es_index)->
-      es_index.delete "activity", id, ignoreMissing: true, callback
+    Activity.index().delete "activity", id, ignoreMissing: true, callback
 
 
   # -- Retrieving and searching --
@@ -237,12 +236,11 @@ Activity =
 
   # Returns activity by id (null if not found).
   get: (id, callback)->
-    search (es_index)->
-      es_index.get id, ignoreMissing: true, (error, activity)->
-        if activity
-          activity.url = "/activity/#{activity.id}"
-          activity.labels ||= []
-        callback error, activity
+    Activity.index().get id, ignoreMissing: true, (error, activity)->
+      if activity
+        activity.url = "/activity/#{activity.id}"
+        activity.labels ||= []
+      callback error, activity
 
 
   # Returns all activities that meet the search criteria.
@@ -280,20 +278,19 @@ Activity =
             range:
               published: range
     # And ... go!
-    search (es_index)->
-      es_index.search params, (error, results)->
-        if error
-          callback error
-        else
-          activities = results.hits.map((hit)->
-            activity = hit._source
-            activity.url = "/activity/#{activity.id}"
-            activity.labels ||= []
-            return activity)
-          callback null,
-            total: results.total
-            limit: params.size
-            activities: activities
+    Activity.index().search params, (error, results)->
+      if error
+        callback error
+      else
+        activities = results.hits.map((hit)->
+          activity = hit._source
+          activity.url = "/activity/#{activity.id}"
+          activity.labels ||= []
+          return activity)
+        callback null,
+          total: results.total
+          limit: params.size
+          activities: activities
 
 
   frequency: (query, callback)->
@@ -305,13 +302,12 @@ Activity =
       sort:   { published: "desc" }
       fields: ["published", "verb"]
     # And ... go!
-    search (es_index)->
-      es_index.search params, (error, results)->
-        if error
-          callback error
-        else
-          rows = results.hits.map((hit)-> { date: hit.fields.published, verb: hit.fields.verb })
-          callback null, rows
+    Activity.index().search params, (error, results)->
+      if error
+        callback error
+      else
+        rows = results.hits.map((hit)-> { date: hit.fields.published, verb: hit.fields.verb })
+        callback null, rows
 
 
   # -- Activity stream events --
@@ -334,6 +330,51 @@ Activity =
   # Remove event listener.
   removeListener: (event, listener)->
     events.removeListener event, listener
+
+
+  # -- Index management --
+ 
+  # Returns Elastical.Client for the search index.
+  index: ->
+    unless Activity._index
+      name = config.elasticsearch?.index || "vanity"
+      client = new Elastical.Client(config.elasticsearch?.hostname || "localhost",
+                                    port: config.elasticsearch?.port,
+                                    curlDebug: process.env.DEBUG)
+      Activity._index = new Elastical.Index(client, name)
+    return Activity._index
+
+  # Create index if doesn't already exist.
+  createIndex: (callback)->
+    # Check if index already exists before trying to create new one.
+    elastical = Activity.index()
+    elastical.exists (error, exists)->
+      if error
+        callback(error)
+      else if exists
+        callback()
+      else
+        # Tell ES to create the index with the supplied mappings.
+        options =
+          settings: {}
+          mappings: { activities: Activity.MAPPINGS }
+        elastical.client.createIndex elastical.name, options, (error)->
+          # If we can't connect/use ES, we just kill the process.
+          if error
+            throw error
+          else
+            callback()
+    return
+
+  # Deletes the index.  We use this during testing.
+  deleteIndex: (callback)->
+    elastical = Activity.index()
+    elastical.exists (error, exists)->
+      if exists
+        elastical.deleteIndex(callback)
+      else
+        callback()
+    return
 
 
 module.exports = Activity

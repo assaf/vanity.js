@@ -13,34 +13,34 @@ describe "activity", ->
       last_error = error
     Helper.setup done
 
-
   describe "full parameters", ->
 
     before (done)->
-      last_error = null
-      vanity.activity
-        id:     "df7dcf7d6648559da6eea01e9f55f914c7ce30f3"
-        actor:
-          id:           "assaf"
-          displayName:  "Assaf"
-          url:          "http://labnotes.org"
-          image:
-            url:        "https://en.gravatar.com/userimage/3621225/d6f077ea1e5db61afad13eeb5e79e7a2.jpeg"
-            width:      80
-            height:     90
-        verb:     "shared"
-        object:
-          displayName:  "victory dance"
-          url:          "https://gimmebar.com/view/4f19d99a2e0aaa3f1300006f"
-          image:
-            url:        "https://gimmebar.com/view/4f19d99a2e0aaa3f1300006f"
-            width:      300
-            height:     200
-        location: "San Francisco"
-        labels:   ["funny", "die"]
-      Helper.search (activities)->
-        activity = activities[0]
-        done()
+      Helper.newIndex ->
+        last_error = null
+        vanity.activity
+          id:     "df7dcf7d6648559da6eea01e9f55f914c7ce30f3"
+          actor:
+            id:           "assaf"
+            displayName:  "Assaf"
+            url:          "http://labnotes.org"
+            image:
+              url:        "https://en.gravatar.com/userimage/3621225/d6f077ea1e5db61afad13eeb5e79e7a2.jpeg"
+              width:      80
+              height:     90
+          verb:     "shared"
+          object:
+            displayName:  "victory dance"
+            url:          "https://gimmebar.com/view/4f19d99a2e0aaa3f1300006f"
+            image:
+              url:        "https://gimmebar.com/view/4f19d99a2e0aaa3f1300006f"
+              width:      300
+              height:     200
+          location: "San Francisco"
+          labels:   ["funny", "die"]
+        Helper.search (activities)->
+          activity = activities[0]
+          done()
       
     it "should create activity on server", ->
       assert activity
@@ -76,21 +76,20 @@ describe "activity", ->
     it "should not emit an error", ->
       assert !last_error
 
-    after Helper.teardown
-
 
   describe "short parameters", ->
 
     before (done)->
-      last_error = null
-      vanity.activity
-        actor:    "Assaf"
-        verb:     "shared"
-        object:   "victory dance"
-        location: "San Francisco"
-      Helper.search (activities)->
-        activity = activities[0]
-        done()
+      Helper.newIndex ->
+        last_error = null
+        vanity.activity
+          actor:    "Assaf"
+          verb:     "shared"
+          object:   "victory dance"
+          location: "San Francisco"
+        Helper.search (activities)->
+          activity = activities[0]
+          done()
       
     it "should create activity on server", ->
       assert activity
@@ -118,19 +117,18 @@ describe "activity", ->
     it "should not emit an error", ->
       assert !last_error
 
-    after Helper.teardown
-
 
   describe "minimum parameters", ->
 
     before (done)->
-      last_error = null
-      vanity.activity
-        actor:    "Assaf"
-        verb:     "shared"
-      Helper.search (activities)->
-        activity = activities[0]
-        done()
+      Helper.newIndex ->
+        last_error = null
+        vanity.activity
+          actor:    "Assaf"
+          verb:     "shared"
+        Helper.search (activities)->
+          activity = activities[0]
+          done()
       
     it "should create activity on server", ->
       assert activity
@@ -156,16 +154,15 @@ describe "activity", ->
     it "should not emit an error", ->
       assert !last_error
 
-    after Helper.teardown
-
 
   describe "missing parameters", ->
     before (done)->
-      last_error = null
-      vanity.activity {}
-      Helper.search (activities)->
-        activity = activities[0]
-        done()
+      Helper.newIndex ->
+        last_error = null
+        vanity.activity {}
+        Helper.search (activities)->
+          activity = activities[0]
+          done()
       
     it "should create no activity on server", ->
       assert !activity
@@ -173,22 +170,21 @@ describe "activity", ->
     it "should emit an error", ->
       assert.equal last_error, "Server returned 400: Activity requires verb"
 
-    after Helper.teardown
-
 
   describe "no host name", ->
 
     before (done)->
-      last_error = null
-      nohost = new Vanity()
-      nohost.on "error", (error)->
-        last_error = error
-      nohost.activity
-        actor:    "Assaf"
-        verb:     "shared"
-      Helper.search (activities)->
-        activity = activities[0]
-        done()
+      Helper.newIndex ->
+        last_error = null
+        nohost = new Vanity()
+        nohost.on "error", (error)->
+          last_error = error
+        nohost.activity
+          actor:    "Assaf"
+          verb:     "shared"
+        Helper.search (activities)->
+          activity = activities[0]
+          done()
       
     it "should not create activity on server", ->
       assert !activity
@@ -196,21 +192,18 @@ describe "activity", ->
     it "should not emit an error", ->
       assert !last_error
 
-    after Helper.teardown
-
 
   describe "no error handler", ->
 
     before (done)->
-      last_error = null
-      nohandler = new Vanity(host: "localhost:3003")
-      nohandler.activity actor: "Assaf"
-      done()
+      Helper.newIndex ->
+        last_error = null
+        nohandler = new Vanity(host: "localhost:3003")
+        nohandler.activity actor: "Assaf"
+        done()
       
     it "should not blow up on uncaughtException", ->
       assert true
 
     it "should not emit an error", ->
       assert !last_error
-
-    after Helper.teardown

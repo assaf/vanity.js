@@ -1,15 +1,14 @@
-{ setup }         = require("./helper") # must be at top
+Helper            = require("./helper") # must be at top
 assert            = require("assert")
 Async             = require("async")
 { EventEmitter }  = require("events")
 request           = require("request")
 Activity          = require("../models/activity")
-search            = require("../config/search")
 EventSource       = require("./sse_client")
 
 
 describe "activity", ->
-  before setup
+  before Helper.setup
 
 
   # -- Creating an activity --
@@ -21,6 +20,8 @@ describe "activity", ->
       actor:    { displayName: "Assaf" }
       verb:     "posted"
       published: new Date(1332348384734).toISOString()
+
+    before Helper.newIndex
 
     describe "valid", ->
       before (done)->
@@ -70,20 +71,19 @@ describe "activity", ->
       it "should return error message", ->
         assert.equal body, "Activity requires verb"
 
-    after search.teardown
-
 
   # -- Getting an activity --
   
   describe "get activity", ->
 
     before (done)->
-      params =
-        id:     "fe936972"
-        actor:  { displayName: "Assaf" }
-        verb:   "posted"
-        labels: ["image", "funny"]
-      Activity.create params, done
+      Helper.newIndex ->
+        params =
+          id:     "fe936972"
+          actor:  { displayName: "Assaf" }
+          verb:   "posted"
+          labels: ["image", "funny"]
+        Activity.create params, done
 
     describe "", ->
       statusCode = body = headers = null
@@ -141,9 +141,6 @@ describe "activity", ->
 
       it "should return an error message", ->
         assert.equal body, "Not Found"
-
-
-    after search.teardown
   
 
   # -- Listing all activities --
@@ -152,12 +149,12 @@ describe "activity", ->
     statusCode = body = headers = null
 
     before (done)->
-      file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
-      Async.forEach JSON.parse(file), (activity, done)->
-        Activity.create activity, done
-      , ->
-        search (es_index)->
-          es_index.refresh done
+      Helper.newIndex ->
+        file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
+        Async.forEach JSON.parse(file), (activity, done)->
+          Activity.create activity, done
+        , ->
+          Activity.index().refresh done
         
 
     describe "", ->
@@ -321,8 +318,6 @@ describe "activity", ->
         assert.equal items.length, 1
         assert.equal items[0].actor.displayName, "Jerome"
 
-    after search.teardown
-
 
   # -- Activity stream --
  
@@ -332,21 +327,22 @@ describe "activity", ->
     events = []
 
     before (done)->
-      # Fire up the event source, we need to be connected to receive anything.
-      event_source = new EventSource("http://localhost:3003/v1/activity/stream")
-      # Wait until we're connected, then create activities and have then sent to event source.
-      event_source.onopen = ->
-        file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
-        Async.forEach JSON.parse(file), (activity, done)->
-          Activity.create activity, done
-        , ->
-      # Process activities as they come in.
-      event_source.addEventListener "activity", (event)->
-        events.push event
-        # We only wait for the first three events
-        if events.length == 3
-          event_source.close()
-          done()
+      Helper.newIndex ->
+        # Fire up the event source, we need to be connected to receive anything.
+        event_source = new EventSource("http://localhost:3003/v1/activity/stream")
+        # Wait until we're connected, then create activities and have then sent to event source.
+        event_source.onopen = ->
+          file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
+          Async.forEach JSON.parse(file), (activity, done)->
+            Activity.create activity, done
+          , ->
+        # Process activities as they come in.
+        event_source.addEventListener "activity", (event)->
+          events.push event
+          # We only wait for the first three events
+          if events.length == 3
+            event_source.close()
+            done()
 
     it "should receive all three events", ->
       assert.equal events.length, 3
@@ -361,19 +357,18 @@ describe "activity", ->
         assert /(Assaf|David|Jerome) (started|continued|completed)\./.test(activity.title)
         assert /<div/.test(activity.html)
 
-    after search.teardown
-  
 
   # -- Deleting an activity --
   
   describe "delete", ->
     before (done)->
-      params =
-        id:     "015f13c4"
-        actor:  { displayName: "Assaf" }
-        verb:   "posted"
-      Activity.create params, ->
-        Activity.create id: "75b12975", actor: { displayName: "Assaf" }, verb: "tested", done
+      Helper.newIndex ->
+        params =
+          id:     "015f13c4"
+          actor:  { displayName: "Assaf" }
+          verb:   "posted"
+        Activity.create params, ->
+          Activity.create id: "75b12975", actor: { displayName: "Assaf" }, verb: "tested", done
 
     it "should delete activity", (done)->
       request.del "http://localhost:3003/v1/activity/015f13c4", ->
@@ -395,7 +390,4 @@ describe "activity", ->
       Activity.get "75b12975", (error, doc)->
         assert doc && doc.actor
         done()
-
-    after search.teardown
-
 
