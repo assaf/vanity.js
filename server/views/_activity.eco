@@ -23,7 +23,7 @@
     <% end %>
   <% end %>
   <span class="meta">
-    <span class="published"><%= new Date(@published).toLocaleString() %></span>
+    <time class="published"><%= Date.create(@published).format("{Weekday}, {Mon} {d} {h}:{mm}{TT}") %></time>
     <% if @location && @location.displayName: %><span class="location"><%= @location.displayName %></span><% end %>
   </span>
   <% if @labels?.length: %>

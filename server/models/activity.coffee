@@ -201,7 +201,8 @@ Activity =
     if location
       geocode location, (error, result)->
         # TODO: proper logging comes here
-        if error then console.error error
+        if error
+          console.error error
         if result
           doc.location = result
         else
@@ -220,10 +221,10 @@ Activity =
     Activity.index().index "activity", doc, options, (error)->
       if error
         Activity.emit "error", error
-        callback error if callback
       else
         Activity.emit "activity", doc
-        callback null, doc.id if callback
+      if callback
+        callback error, doc?.id
 
 
   # Deletes activity by id.
@@ -240,7 +241,7 @@ Activity =
       if activity
         activity.url = "/activity/#{activity.id}"
         activity.labels ||= []
-      callback error, activity
+      callback(error, activity)
 
 
   # Returns all activities that meet the search criteria.

@@ -23,7 +23,7 @@ es-delete :
 
 # Populates ElasticSearch with fake data
 es-fake :
-	coffee lib/fake_it
+	coffee lib/fake_it 1000
 
 # UI for ElasticSearch
 es-view :

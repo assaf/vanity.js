@@ -36,7 +36,11 @@ $(function() {
     var list = d3.select("#stream"),
         selection = list.selectAll("li").data(activities, function(d) { return d.id }),
         li = selection.enter().append("li");
-    li.html(function(d) { return d.html });
+    li.html(function(d) {
+      return d.html.replace(/(<time.*>).*(<\/time>)/, function(_, head, tail) {
+        return head + Date.create(d.published).format("{Weekday}, {Mon} {d} {h}:{mm} {TT}") + tail
+      })
+    });
     if (highlight)
       li.attr("class", "highlight").transition().delay(1).attr("class", "")
     // Set the color of each activity based on its verb.
