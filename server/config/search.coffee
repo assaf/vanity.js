@@ -26,80 +26,8 @@ Elastical = require("elastical")
 config    = require("./index")
 
 
-# Apply this mappings when creating the index.
-MAPPINGS =
-  activities:
-    properties:
-      id:
-        type: "string"
-        index: "not_analyzed"
-        include_in_all: false
-      actor:
-        type: "object"
-        path: "just_name"
-        include_in_all: false
-        properties:
-          id:
-            type: "string"
-            index: "not_analyzed"
-            index_name: "actor_id"
-          displayName:
-            type: "string"
-            index_name: "actor"
-          url:
-            type: "string"
-            index_name: "actor_url"
-          image:
-            type: "object"
-      verb:
-        type: "string"
-        include_in_all: false
-      object:
-        type: "object"
-        path: "just_name"
-        include_in_all: false
-        properties:
-          id:
-            type: "string"
-            index: "not_analyzed"
-            index_name: "object_id"
-          displayName:
-            type: "string"
-            index_name: "object"
-          url:
-            type: "string"
-            index_name: "object_url"
-          image:
-            type: "object"
-      labels:
-        type: "string"
-        include_in_all: true
-      location:
-        type: "geo_point"
-        lat_lon: true
-        properties:
-          displayName:
-            type: "string"
-            index_name: "location"
-            include_in_all: true
-      title:
-        type: "string"
-        index: "no"
-        include_in_all: true
-      content:
-        type: "string"
-        index: "no"
-        include_in_all: false
-    _timestamp:
-      enabled: true
-      path:    "published"
-        
-
-
 # Eventually set to Elastical.Index object.
 es_index = null
-# Queue of functions waiting for es_index to be set.
-waiting = null
 
 # This method calls function with an Elastical.Index object.  But first, it will make sure the vanity index exists,
 # creating it if necessary.
@@ -108,14 +36,6 @@ search = (fn)->
   if es_index
     fn es_index
     return
-
-  # Queue waiting for ES index to get initialized, add to end of queue.
-  if waiting
-    waiting.push fn
-    return
-
-  # Create a queye waiting for ES index to get initialized, add to end of queue.
-  waiting = [fn]
 
   # Use configuration to create es_index, but don't make it accessible yet.
   index_name = config.elasticsearch?.index || "vanity"
@@ -126,23 +46,19 @@ search = (fn)->
 
   # Tell ES to create the index with the supplied mappings.
   createIndex = (callback)->
+    Activity  = require("../models/activity") # avoid circular dependencies
     options =
       settings: {}
-      mappings: MAPPINGS
+      mappings: { activities: Activity.MAPPINGS }
+    setTimeout ->
     client.createIndex index_name, options, (error)->
       # If we can't connect/use ES, we just kill the process.
       if error
         throw error
-      complete()
-
-  # Make the Elastical.Index client available to future callers, and then call all waiting functions (FIFO).
-  complete = ->
-    es_index = index
-    for fn in waiting
-      do (fn)->
-        process.nextTick ->
-          fn index
-    waiting = null
+      else
+        # Give ElasticSearch some time to sort itself before proceeding
+        es_index = index
+        fn(es_index)
 
   if process.env.NODE_ENV == "test"
     # We get here when running tests: always delete the index and then re-create it, so each test run uses a fresh
@@ -153,7 +69,8 @@ search = (fn)->
     # Check if index already exists before trying to create new one.
     index.exists (error, exists)->
       if exists
-        complete()
+        es_index = index
+        fn(es_index)
       else
         createIndex()
 
@@ -174,8 +91,8 @@ get_index = ->
 # This is used during testing to delete index between tests.
 search.teardown = (callback)->
   index = get_index()
+  es_index = null
   index.exists (error, exists)->
-    es_index = null
     if exists
       index.deleteIndex callback
     else

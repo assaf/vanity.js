@@ -10,7 +10,11 @@ Helper =
   # Fire up the Web server
   setup: (done)->
     search ->
-      server.listen 3003, done
+      server.listen 3003, (error)->
+        if error
+          throw error
+        else
+          done()
 
   # Deletes the search index
   teardown: (done)->
@@ -19,13 +23,14 @@ Helper =
   # Returns all activities that match the search criteria.  Can also call with just callback.
   search: (query, callback)->
     [query, callback] = [null, query] unless callback
-    setTimeout ->
+    # Give ElasticSearch some time to sort itself before proceeding
+     setTimeout ->
       search (es_search)->
         es_search.refresh ->
           Request.get "http://localhost:3003/v1/activity", (error, response, body)->
             if error
               throw error
-            if response.statusCode == 200
+            else if response.statusCode == 200
               callback JSON.parse(body).items
             else
               throw new Error("Activity API returned #{response.statusCode}")

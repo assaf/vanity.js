@@ -82,6 +82,7 @@ describe "activity", ->
         id:     "fe936972"
         actor:  { displayName: "Assaf" }
         verb:   "posted"
+        labels: ["image", "funny"]
       Activity.create params, done
 
     describe "", ->
@@ -119,6 +120,11 @@ describe "activity", ->
       it "should include title", ->
         activity = JSON.parse(body)
         assert.equal activity.title, "Assaf posted."
+
+      it "should include labels", ->
+        activity = JSON.parse(body)
+        assert activity.labels.include("image")
+        assert activity.labels.include("funny")
 
 
     describe "no such activity", ->

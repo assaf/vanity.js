@@ -42,6 +42,7 @@ util.inherits(Vanity, events.EventEmitter);
  * object   - Object associated with the activity, either display name (string)
  *            or an object.  Optional. 
  * location - Location name.  Optional.
+ * label    - Labels.  Optional.
  *
  * Actor may specify id and/or displayName, and optionally also url (to
  * profile) and image.  If you don't have a displayName, just pass the id, and
@@ -73,7 +74,8 @@ util.inherits(Vanity, events.EventEmitter);
  *         url: "http://bit.ly/yq14vJ"
  *       }
  *     },
- *     location: "San Francisco, CA"
+ *     location: "San Francisco, CA",
+ *     labels: ["funny"]
  *   })
  */
 Vanity.prototype.activity = function(activity) {
@@ -94,7 +96,8 @@ Vanity.prototype.activity = function(activity) {
         actor:    actor,
         verb:     activity.verb,
         object:   object,
-        location: activity.location
+        location: activity.location,
+        labels:   activity.labels
       };
   try {
     request.post({ url: "http://" + this.host + "/v1/activity", json: params }, function(error, response, body) {

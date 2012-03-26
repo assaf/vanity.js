@@ -37,6 +37,7 @@ describe "activity", ->
             width:      300
             height:     200
         location: "San Francisco"
+        labels:   ["funny", "die"]
       Helper.search (activities)->
         activity = activities[0]
         done()
@@ -67,6 +68,10 @@ describe "activity", ->
 
     it "should use location parameter", ->
       assert.equal activity.location.displayName, "San Francisco, CA, USA"
+
+    it "should use labels parameter", ->
+      assert ~activity.labels.indexOf("funny")
+      assert ~activity.labels.indexOf("die")
 
     it "should not emit an error", ->
       assert !last_error

@@ -1,7 +1,14 @@
 # Activity stream.
 #
-# Activity stream consists of multiple activities.
-
+# Activity stream consists of multiple activities.  Each activity has:
+# id        - Unique activity identifier.
+# actor     - Activity actor is an object with id, displayName, url and image.
+# verb      - Activity verb.
+# object    - Activity object has displayName, url and image.  Optional.
+# location  - Consists of displayName and lat, lon.  Optional.
+# published - When activity was published.
+# labels    - Array of labels.
+ 
 
 Crypto            = require("crypto")
 { EventEmitter }  = require("events")
@@ -38,6 +45,76 @@ sanitize_image = (image)->
 
 Activity =
 
+  # ElasticSearch index mapping for activities.
+  MAPPINGS:
+    properties:
+      id:
+        type: "string"
+        index: "not_analyzed"
+        include_in_all: false
+      actor:
+        type: "object"
+        path: "just_name"
+        include_in_all: false
+        properties:
+          id:
+            type: "string"
+            index: "not_analyzed"
+            index_name: "actor_id"
+          displayName:
+            type: "string"
+            index_name: "actor"
+          url:
+            type: "string"
+            index_name: "actor_url"
+          image:
+            type: "object"
+      verb:
+        type: "string"
+        include_in_all: false
+      object:
+        type: "object"
+        path: "just_name"
+        include_in_all: false
+        properties:
+          id:
+            type: "string"
+            index: "not_analyzed"
+            index_name: "object_id"
+          displayName:
+            type: "string"
+            index_name: "object"
+          url:
+            type: "string"
+            index_name: "object_url"
+          image:
+            type: "object"
+      labels:
+        type: "string"
+        include_in_all: true
+      location:
+        type: "geo_point"
+        lat_lon: true
+        properties:
+          displayName:
+            type: "string"
+            index_name: "location"
+            include_in_all: true
+      title:
+        type: "string"
+        index: "no"
+        include_in_all: true
+      content:
+        type: "string"
+        index: "no"
+        include_in_all: false
+      published:
+        type: "date"
+    _timestamp:
+      enabled: true
+      path:    "published"
+
+
   # -- Creating and deleting --
 
   # Creates a new activity.
@@ -48,6 +125,7 @@ Activity =
   # object    - If activity has an object, it may specify displayName, url and/or image.
   # location  - Optional and consists of displayName and lat, lon.
   # published - When activity was published (defaults to null).
+  # labels    - Array of labels.
   #
   # If no activity identifier is specified, one will be created based on the various activity fields.  If successfuly,
   # the callback includes the activity identifier.
@@ -55,7 +133,7 @@ Activity =
   # Returns the activity identifier immediately.  Passes error and id to callback after storing activity.
   #
   # If required fields are missing, throws an error.  Make sure to catch it, callback will not be called.
-  create: ({ id, published, actor, verb, object, location }, callback)->
+  create: ({ id, published, actor, verb, object, location, labels }, callback)->
     unless verb
       throw new Error("Activity requires verb")
     unless actor && (actor.displayName || actor.id)
@@ -85,6 +163,9 @@ Activity =
         image:        sanitize_image(actor.image)
       verb: verb.toString()
       published: new Date(published).toISOString()
+
+    if labels
+      doc.labels = labels.map((label)-> label.toString())
 
     # Some activities have an object.  An object must have display name and/or URL.  We show display name if we have
     # one, but we consider the activity unique based on object URL (see SHA above).
@@ -160,6 +241,7 @@ Activity =
       es_index.get id, ignoreMissing: true, (error, activity)->
         if activity
           activity.url = "/activity/#{activity.id}"
+          activity.labels ||= []
         callback error, activity
 
 
@@ -206,6 +288,7 @@ Activity =
           activities = results.hits.map((hit)->
             activity = hit._source
             activity.url = "/activity/#{activity.id}"
+            activity.labels ||= []
             return activity)
           callback null,
             total: results.total
