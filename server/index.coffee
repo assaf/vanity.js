@@ -1,5 +1,5 @@
-server = require("./config/server")
-search = require("./config/search")
+server   = require("./config/server")
+Activity = require("./models/activity")
 
-search ->
+Activity.createIndex ->
   server.listen process.env.PORT || 3000

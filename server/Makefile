@@ -36,4 +36,4 @@ es-view :
 
 # Publish a fake activity using the API
 test-publish :
-	coffee lib/publish
+	coffee lib/publish 1 localhost:3000
