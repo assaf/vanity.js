@@ -104,7 +104,7 @@ Vanity.prototype.activity = function(activity) {
       if (error)
         self.emit("error", error);
       else if (response.statusCode >= 400)
-        self.emit("error", "Server returned " + response.statusCode + ": " + body);
+        self.emit("error", new ("Server returned " + response.statusCode + ": " + body));
     })
   } catch (error) {
     self.emit("error", error);
