@@ -1,6 +1,6 @@
 assert = require("assert")
 Vanity = require("../")
-Helper  = require("./helper")
+Helper = require("./helper")
 
 
 describe "activity", ->
@@ -168,7 +168,7 @@ describe "activity", ->
       assert !activity
 
     it "should emit an error", ->
-      assert.equal last_error, "Server returned 400: Activity requires verb"
+      assert.equal last_error.message, "Server returned 400: Activity requires verb"
 
 
   describe "no host name", ->

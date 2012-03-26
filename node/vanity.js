@@ -8,9 +8,9 @@
  *   vanity.activity({ actor: "Assaf", verb: "shared", object: "http://bit.ly/GLUa9S" })
  */
 
-var request = require("request"),
-    util    = require("util"),
-    events  = require("events");
+var Request = require("request"),
+    Util    = require("util"),
+    Events  = require("events");
 
 
 /**
@@ -28,7 +28,7 @@ function Vanity(options) {
   this.on("error", function() { });
 }
 
-util.inherits(Vanity, events.EventEmitter);
+Util.inherits(Vanity, Events.EventEmitter);
 
 
 
@@ -83,7 +83,7 @@ Vanity.prototype.activity = function(activity) {
   if (!this.host && !this.token)
     return;
   // Actor/object can be a string, in which case they are the display name.
-  var self = this,
+  var self   = this,
       actor  = activity.actor,
       object = activity.object;
   if (typeof actor == "string" || actor instanceof String)
@@ -100,11 +100,11 @@ Vanity.prototype.activity = function(activity) {
         labels:   activity.labels
       };
   try {
-    request.post({ url: "http://" + this.host + "/v1/activity", json: params }, function(error, response, body) {
+    Request.post({ url: "http://" + this.host + "/v1/activity", json: params }, function(error, response, body) {
       if (error)
         self.emit("error", error);
       else if (response.statusCode >= 400)
-        self.emit("error", new ("Server returned " + response.statusCode + ": " + body));
+        self.emit("error", new Error("Server returned " + response.statusCode + ": " + body));
     })
   } catch (error) {
     self.emit("error", error);
