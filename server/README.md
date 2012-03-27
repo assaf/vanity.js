@@ -3,9 +3,8 @@
 
 ## Running
 
-In development mode, you and run the server under
-[Supervisor](https://github.com/isaacs/node-supervisor) with automatic reload on
-code change:
+In development mode you can run a single server instance with automatic
+reloading using:
 
 ```
 $ npm start
