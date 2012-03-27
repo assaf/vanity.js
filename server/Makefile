@@ -4,7 +4,7 @@ default : test
 
 # Run all tests
 test :
-	mocha -R list 
+	mocha -R tap 
 
 
 # Run this in production
