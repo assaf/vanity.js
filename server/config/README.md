@@ -3,8 +3,7 @@
 This library contains configured objects, that is, objects initialized based on the environment, settings and
 configuration files.
 
-For example, `config/search` provides an `Elastical.Index` client that will directly access the search index on the
-ElasticSearch server.
-
-* `config/search` - `Elastical.Index` client for using the search index.
+* `config/index` - Loads default and environment specific configuration files.
+* `config/logger` - Default logger.
+* `config/server` - The Express application object.
 

@@ -28,8 +28,9 @@ server.configure ->
     res.end = ->
       remote_addr = req.socket && (req.socket.remoteAddress || (req.socket.socket && req.socket.socket.remoteAddress))
       referer = req.headers["referer"] || req.headers["referrer"] || ""
+      ua = req.headers["user-agent"] || "-"
       length = res._headers["content-length"] || "-"
-      logger.info "#{remote_addr} - \"#{req.method} #{req.originalUrl} HTTP/#{req.httpVersionMajor}.#{req.httpVersionMinor}\" #{res.statusCode} #{length} \"#{referer}\" \"#{req.headers["user-agent"]}\" - #{Date.now() - start} ms"
+      logger.info "#{remote_addr} - \"#{req.method} #{req.originalUrl} HTTP/#{req.httpVersionMajor}.#{req.httpVersionMinor}\" #{res.statusCode} #{length} \"#{referer}\" \"#{ua}\" - #{Date.now() - start} ms"
       res.end = end_fn
       end_fn.apply(res, arguments)
     next()
