@@ -30,11 +30,10 @@ describe "activity", ->
           done()
 
       it "should create activity", (done)->
-        Activity.once "activity", ->
-          Activity.get "8fea081c", (error, activity)->
-            assert activity
-            assert.equal activity.actor.displayName, "Assaf"
-            done()
+        Activity.get "8fea081c", (error, activity)->
+          assert activity
+          assert.equal activity.actor.displayName, "Assaf"
+          done()
 
       it "should return 201", ->
         assert.equal statusCode, 201

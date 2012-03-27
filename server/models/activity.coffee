@@ -18,7 +18,7 @@ URL               = require("url")
 config            = require("../config")
 server            = require("../config/server")
 logger            = require("../config/logger")
-name              = require("../lib/names")
+pickName          = require("../lib/names")
 geocode           = require("../lib/geocode")
 
 
@@ -41,7 +41,7 @@ sanitizeUrl = (url)->
 # wight/height numbers.  May return undefined.
 sanitizeImage = (image)->
   return undefined unless image && image.url
-  result = url: sanitizeUrl(image.url)
+  result = { url: sanitizeUrl(image.url) }
   result.width = parseInt(image.width, 10) if image.width
   result.height = parseInt(image.height, 10) if image.height
   return result
@@ -142,86 +142,94 @@ Activity =
   # callback will not be called.
   create: ({ id, published, actor, verb, object, location, labels }, callback)->
     unless verb
-      throw new Error("Activity requires verb")
+      process.nextTick ->
+        callback new Error("Activity requires verb")
+      return
     unless actor && (actor.displayName || actor.id)
-      throw new Error("Activity requires actor")
-    # Each activity has a timestamp, default to now.
-    published = Date.create(published)
+      process.nextTick ->
+        callback new Error("Activity requires actor")
+      return
 
-    # If no activity specified, we use the activity content to create a unique
-    # ID.
-    unless id
-      sha = Crypto.createHash("SHA1")
-      values = [
-        actor && (actor.displayName || actor.id) || "anonymous",
-        verb,
-        object && (object.url || object.displayName) || "",
-        published.toISOString()
-      ].map((val)-> escape(val))
-      id = sha.update(values.join(":")).digest("hex")
+    try
+      # Each activity has a timestamp, default to now.
+      published = Date.create(published)
 
-    doc =
-      id: id.toString()
-      actor:
-        # If actor name is not specified, we can make one up based on actor ID.
-        # This is used when you have an anonymized activity stream, but still
-        # want to see related activities by same visitor.
-        id:           actor.id
-        displayName:  actor.displayName || name(actor.id)
-        url:          sanitizeUrl(actor.url)
-        image:        sanitizeImage(actor.image)
-      verb: verb.toString()
-      published: new Date(published).toISOString()
+      # If no activity specified, we use the activity content to create a unique
+      # ID.
+      unless id
+        sha = Crypto.createHash("SHA1")
+        values = [
+          actor && (actor.displayName || actor.id) || "anonymous",
+          verb,
+          object && (object.url || object.displayName) || "",
+          published.toISOString()
+        ].map((val)-> escape(val))
+        id = sha.update(values.join(":")).digest("hex")
 
-    if labels
-      doc.labels = labels.map((label)-> label.toString().trim())
-        .filter((label)-> label != "")
-        .unique()
+      doc =
+        id: id.toString()
+        actor:
+          # If actor name is not specified, we can make one up based on actor ID.
+          # This is used when you have an anonymized activity stream, but still
+          # want to see related activities by same visitor.
+          id:           actor.id
+          displayName:  actor.displayName || pickName(actor.id)
+          url:          sanitizeUrl(actor.url)
+          image:        sanitizeImage(actor.image)
+        verb: verb.toString()
+        published: new Date(published).toISOString()
 
-    # Some activities have an object.  An object must have display name and/or
-    # URL.  We show display name if we have one, but we consider the activity
-    # unique based on object URL (see SHA above).
-    if object && (object.displayName || object.url)
-      doc.object =
-        displayName: object.displayName || sanitizeUrl(object.url)
-        url:         sanitizeUrl(object.url)
-        image:       sanitizeImage(object.image)
+      if Array.isArray(labels)
+        doc.labels = labels.map((label)-> label.toString().trim())
+          .filter((label)-> label != "")
+          .unique()
 
-    # Create title from actor verb object combination
-    title = [doc.actor.displayName, doc.verb]
-    if doc.object
-      title.push doc.object.displayName
-    doc.title = title.join(" ") + "."
+      # Some activities have an object.  An object must have display name and/or
+      # URL.  We show display name if we have one, but we consider the activity
+      # unique based on object URL (see SHA above).
+      if object && (object.displayName || object.url)
+        doc.object =
+          displayName: object.displayName || sanitizeUrl(object.url)
+          url:         sanitizeUrl(object.url)
+          image:       sanitizeImage(object.image)
 
-    # Create content similar to title but with links.
-    content =[]
-    if doc.actor.url
-      content.push "<a href=\"#{doc.actor.url}\">#{doc.actor.displayName}</a>"
-    else
-      content.push doc.actor.displayName
-    content.push verb
-    if doc.object?.url
-      content.push "<a href=\"#{doc.object.url}\">#{doc.object.displayName}</a>"
-    else if doc.object
-      content.push doc.object.displayName
-    doc.content = content.join(" ") + "."
-    if doc.object?.image
-      doc.content + "<img src=\"#{doc.object.image.url}\">"
+      # Create title from actor verb object combination
+      title = [doc.actor.displayName, doc.verb]
+      if doc.object
+        title.push doc.object.displayName
+      doc.title = title.join(" ") + "."
 
-    # If location provided we need some geocoding action.
-    if location
-      geocode location, (error, result)->
-        if error
-          logger.error error
-        if result
-          doc.location = result
-        else
-          doc.location = { displayName: location }
+      # Create content similar to title but with links.
+      content =[]
+      if doc.actor.url
+        content.push "<a href=\"#{doc.actor.url}\">#{doc.actor.displayName}</a>"
+      else
+        content.push doc.actor.displayName
+      content.push verb
+      if doc.object?.url
+        content.push "<a href=\"#{doc.object.url}\">#{doc.object.displayName}</a>"
+      else if doc.object
+        content.push doc.object.displayName
+      doc.content = content.join(" ") + "."
+      if doc.object?.image
+        doc.content + "<img src=\"#{doc.object.image.url}\">"
+
+      # If location provided we need some geocoding action.
+      if location
+        geocode location, (error, result)->
+          if error
+            logger.error error
+          if result
+            doc.location = result
+          else
+            doc.location = { displayName: location }
+          Activity._store doc, callback
+      else
         Activity._store doc, callback
-    else
-      Activity._store doc, callback
-    # Return known identifier, not activity.
-    return id
+
+    catch error
+      callback error
+
 
   # Store valid activity in ES.
   _store: (doc, callback)->
@@ -233,8 +241,7 @@ Activity =
         Activity.emit "error", error
       else
         Activity.emit "activity", doc
-      if callback
-        callback error, doc?.id
+      callback error, doc?.id
 
 
   # Deletes activity by id.

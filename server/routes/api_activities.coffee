@@ -13,15 +13,12 @@ server   = require("../config/server")
 #
 # Does not wait for activity to be indexed.
 server.post "/v1/activity", (req, res, next)->
-  try
-    id = Activity.create(req.body, (error)->
-      if error
-        logger.error error.stack
-    )
-    res.send " ", location: "/v1/activity/#{id}", 201
-  catch error
-    logger.error error.stack
-    res.send error.message, 400
+  logger.info req.body
+  Activity.create req.body, (error, id)->
+    if error
+      res.send error.message, 400
+    else
+      res.send " ", location: "/v1/activity/#{id}", 201
 
 
 # Retrieve recent activities
