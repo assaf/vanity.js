@@ -131,6 +131,10 @@ ol.stream + aside {
 
 
 /* -- Verb selector --
+ *
+ * A list of selectors, each item consisting of an on/off link and a verb label.
+ *
+ * The link text and background color is determined by the presence of the class "hide" (off) or its absence (on).
  */
 .verb-selector {
   list-style: none;
@@ -157,6 +161,40 @@ ol.stream + aside {
   content: "Off";
 }
 .verb-selector li span {
+  display: inline-block;
+  padding: 2px 8px 4px 8px;
+  border-radius: 0 8px 8px 0;
+  margin-left: 2px;
+  width: 8em;
+}
+
+
+/* -- Label selector -- */
+.label-selector {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.label-selector li {
+  margin-bottom: 8px;
+}
+.label-selector li a {
+  display: inline-block;
+  padding: 2px 0 4px 12px;
+  border-radius: 8px 0 0 8px;
+  width: 2.5em;
+  background-color: #eee;
+}
+.label-selector li a:after {
+  content: "+";
+}
+.label-selector li a.require {
+  background-color: #ccc;
+}
+.label-selector li a.require:after {
+  content: "+";
+}
+.label-selector li span {
   display: inline-block;
   padding: 2px 8px 4px 8px;
   border-radius: 0 8px 8px 0;

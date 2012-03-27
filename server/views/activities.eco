@@ -1,7 +1,11 @@
 <ol id="stream" class="stream">
 </ol>
 <aside>
+  <h2>Verbs</h2>
   <ol id="verbs" class="verb-selector">
+  </ol>
+  <h2>Labels</h2>
+  <ol id="labels" class="label-selector">
   </ol>
 </aside>
 <script>
@@ -12,39 +16,42 @@ $(function() {
   // How many recent activites to show.
   var RECENT = 100;
   // We operate on all activities, but generally interested in most recent.
-  var activities = tesseract([]),
-      recent = activities.dimension(function(d) { return d.published });
+  var allActivities = crossfilter([]),
+      recent = allActivities.dimension(function(d) { return d.published });
+
+ 
+  // Returns the top activities that should show on the page. 
+  function topActivities() {
+    return recent.top(RECENT);
+  }
 
 
   // Render most recent activities.
   //
-  // verbs     - Ordered and filtered group of verbs
   // highlight - If true, highlight the activity for a few seconds
-  function renderActivities(verbs, highlight) {
+  function renderActivities(highlight) {
     // From the top N activities, select only the ones showing based on their
     // verb.  If there is no specific entry in verbsShowing, we default to
     // "other".
-    var activities = recent.top(RECENT).filter(function(activity) {
-      var showing = verbsShowing[activity.verb];
-      if (showing == undefined)
-        showing = verbsShowing["other"];
-      return showing;
-    });
+    var activities = filterLabels(filterVerbs(topActivities()));
 
     // For each activity we add an LI element.  To highlight, we set the class
     // `highlight` and then quickly remove it, which causes a CSS transition.
     var list = d3.select("#stream"),
-        selection = list.selectAll("li").data(activities, function(d) { return d.id }),
+        selection = list.selectAll("li")
+                      .data(activities, function(d) { return d.id }),
         li = selection.enter().append("li");
     li.html(function(d) {
       return d.html.replace(/(<time.*>).*(<\/time>)/, function(_, head, tail) {
-        return head + Date.create(d.published).format("{Weekday}, {Mon} {d} {h}:{mm} {TT}") + tail
+        return head + Date.create(d.published)
+                        .format("{Weekday}, {Mon} {d} {h}:{mm} {TT}") + tail
       })
     });
     if (highlight)
       li.attr("class", "highlight").transition().delay(1).attr("class", "")
     // Set the color of each activity based on its verb.
-    selection.select(".color").style("background-color", function(d) { return verbColor(verbs, d.verb); })
+    selection.select(".color")
+      .style("background-color", function(d) { return verbColor(d.verb); })
     selection.exit().remove();
     selection.order();
   }
@@ -61,32 +68,48 @@ $(function() {
   var verbsShowing = {};
 
   // The verb dimension and verbs group.  Group is sorted by frequency.
-  var verb = activities.dimension(function(d) { return d.verb; }),
-      verbs = verb.group().reduceCount();
+  var verbsGroup = allActivities.dimension(function(d) { return d.verb; })
+    .group().reduceCount();
+
+
+  // Returns a group with the top verbs.
+  function topVerbs() {
+    return verbsGroup.top(TOP_VERBS);
+  }
+
+
+  // Filters and returns only activities that should show based on selected
+  // filter.
+  function filterVerbs(activities) {
+    return activities.filter(function(activity) {
+      var showing = verbsShowing[activity.verb];
+      if (showing == undefined)
+        showing = verbsShowing["other"];
+      return showing;
+    })
+  }
 
 
   // Return color for a verb.
   //
-  // verbs - Ordered and filtered group of verbs
   // verb  - The verb you're looking to color
   //
   // Returns color suitable for styling an element (rgba).
-  function verbColor(verbs, verb) {
-    var index = verbs.map(function(verb) { return verb.key }).indexOf(verb),
+  function verbColor(verb) {
+    var index = topVerbs().map(function(verb) { return verb.key }).indexOf(verb),
         color = (index >= 0) ? VERB_COLORS(index) : "#ccc",
         rgb = d3.rgb(color);
     return "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + ",0.5)"
   }
 
 
+
   // Renders the verb selector: shows the msot popular verbs with option to
   // show/hide each one.
-  //
-  // verbs - Ordered and filtered group of verbs
-  function renderVerbs(verbs) {
+  function renderVerbs() {
     // The verbs we're going to show include "other" as the last item, but that
     // other is not part of the computed group.
-    var with_other = verbs.concat({ key: "other" });
+    var with_other = topVerbs().concat({ key: "other" });
     // Make sure all verbs are showing by default.
     verbsShowing = with_other.reduce(function(showing, verb) {
       showing[verb.key] = verbsShowing[verb.key];
@@ -114,12 +137,63 @@ $(function() {
           verbsShowing[d.key] = true;
         }
         // Update all activities accordingly.
-        renderActivities(verbs);
+        renderActivities();
         return false;
       });
     li.append("span")
       .text(function(d) { return d.key })
-      .style("background-color", function(d) { return verbColor(verbs, d.key) });
+      .style("background-color", function(d) { return verbColor(d.key) });
+    selection.exit().remove();
+  }
+
+
+  // -- Labels --
+
+  var labelsFilter = {};
+
+
+  // Filters and returns only activities that should show based on selected
+  // labels.
+  function filterLabels(activities) {
+    var need = Object.keys(labelsFilter),
+        count = need.length;
+    if (count == 0)
+      return activities;
+    else
+      return activities.filter(function(activity) {
+        return activity.labels.intersect(need).length == count;
+      })
+  }
+
+
+  function renderLabels() {
+    var all = d3.merge(topActivities().map(function(d) { return d.labels })),
+        labels = d3.nest().key(function(label) { return label })
+          .rollup(function(value) { return value.length }).entries(all);
+
+    var list = d3.select("#labels"),
+        selection = list.selectAll("li").data(labels, function(d) { return d.key }),
+        li = selection.enter().append("li");
+    li.append("a")
+      .on("click", function(d) {
+        d3.event.stopPropagation();
+        // If the element has the class 'require', we're filtering by this
+        // element: clicking on it removes the class and the filter.
+        if (this.className == "require") {
+          this.className = "";
+          delete labelsFilter[d.key];
+        } else {
+          // Add class 'require' and filter.
+          this.className = "require";
+          labelsFilter[d.key] = false;
+        }
+        // Update all activities accordingly.
+        renderActivities();
+        return false;
+      });
+    li.append("span")
+      .text(function(d) { return d.key })
+      .style("background-color", function(d) { return verbColor(d.key) });
     selection.exit().remove();
   }
 
@@ -131,22 +205,22 @@ $(function() {
   //
   // highlight - If true, highlight the activity for a few seconds
   function refresh(highlight) {
-    var topVerbs = verbs.top(TOP_VERBS);
-    renderVerbs(topVerbs);
-    renderActivities(topVerbs, highlight);
+    renderVerbs();
+    renderLabels();
+    renderActivities(highlight);
   }
 
   // Load most recent activities.   This done once at page loading time and we
   // use this to show the initial activity list.
   $.getJSON("/v1/activity", function(result) {
-    activities.add(result.items);
+    allActivities.add(result.items);
     refresh();
   });
 
   // Connect to event source, get notifies of new activities and show them.
   var es = new EventSource("/v1/activity/stream");
   es.addEventListener("activity", function(event) {
-    activities.add([JSON.parse(event.data)]);
+    allActivities.add([JSON.parse(event.data)]);
     refresh(true); // highlight
   });
 
