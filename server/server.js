@@ -16,7 +16,7 @@ if (process.env.NODE_ENV == "production") {
   port = 80;
   workers = OS.cpus().length;
   timeout = 60000;
-  pid = __dirname + "/tmp/server.pid";
+  pid = __dirname + "/tmp/pids/server.pid";
 } else {
   port = 3000;
   workers = 1;
