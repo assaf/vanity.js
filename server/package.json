@@ -4,7 +4,7 @@
   "author": "Assaf Arkin <assaf@labnotes.org> (http://labnotes.org/)",
   "main": "index",
   "scripts": {
-    "start":  "up -w -t 0 -n 1 config/worker.js",
+    "start":  "node server.js",
     "test":   "mocha -R spec"
   },
   "engines": {

@@ -10,11 +10,13 @@ reloading using:
 $ npm start
 ```
 
+You can also run the server with [Pow](http://pow.cx/).
+
 In production, you can run multiple workers with zero down-time deploys using
 [Up](https://github.com/LearnBoost/up):
 
 ```
-$ up config/worker.js
+$ NODE_ENV=production node server.js
 ```
 
 
