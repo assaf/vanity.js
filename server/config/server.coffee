@@ -62,7 +62,7 @@ server.configure "development", ->
 # errors.
 server.configure "test", ->
   server.error (error, req, res, next)->
-    console.error error
+    console.error error.stack
     next error
 
 

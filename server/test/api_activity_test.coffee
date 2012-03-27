@@ -363,12 +363,13 @@ describe "activity", ->
   describe "delete", ->
     before (done)->
       Helper.newIndex ->
-        params =
-          id:     "015f13c4"
-          actor:  { displayName: "Assaf" }
-          verb:   "posted"
-        Activity.create params, ->
-          Activity.create id: "75b12975", actor: { displayName: "Assaf" }, verb: "tested", done
+        activities = [
+          { id: "015f13c4", actor: { displayName: "Assaf" }, verb: "posted" },
+          { id: "75b12975", actor: { displayName: "Assaf" }, verb: "tested" }
+        ]
+        Async.forEach activities, (activity, done)->
+          Activity.create activity, done
+        , done
 
     it "should delete activity", (done)->
       request.del "http://localhost:3003/v1/activity/015f13c4", ->

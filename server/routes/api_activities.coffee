@@ -16,11 +16,11 @@ server.post "/v1/activity", (req, res, next)->
   try
     id = Activity.create(req.body, (error)->
       if error
-        logger.error error
+        logger.error error.stack
     )
     res.send " ", location: "/v1/activity/#{id}", 201
   catch error
-    logger.error error
+    logger.error error.stack
     res.send error.message, 400
 
 
@@ -51,7 +51,7 @@ server.get "/v1/activity", (req, res)->
 
   Activity.search params, (error, results)->
     if error
-      logger.error error
+      logger.error error.stack
       res.send "Cannot execute query", 400
       return
      
