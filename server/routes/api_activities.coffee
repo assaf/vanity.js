@@ -1,6 +1,7 @@
 QS       = require("querystring")
 Express  = require("express")
 Activity = require("../models/activity")
+logger   = require("../config/logger")
 server   = require("../config/server")
 
 
@@ -14,12 +15,12 @@ server   = require("../config/server")
 server.post "/v1/activity", (req, res, next)->
   try
     id = Activity.create(req.body, (error)->
-      # TODO: proper logging
       if error
-        console.log error
+        logger.error error
     )
     res.send " ", location: "/v1/activity/#{id}", 201
   catch error
+    logger.error error
     res.send error.message, 400
 
 
@@ -50,7 +51,7 @@ server.get "/v1/activity", (req, res)->
 
   Activity.search params, (error, results)->
     if error
-      console.error error
+      logger.error error
       res.send "Cannot execute query", 400
       return
      

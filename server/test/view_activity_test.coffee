@@ -10,6 +10,7 @@ describe "activity", ->
   before setup
 
 
+  ###
   # -- Activity actor --
   
   describe "actor", ->
@@ -272,3 +273,4 @@ describe "activity", ->
     it "should show activity location", ->
       assert.equal browser.query(".activity .location").textContent, "San Francisco, CA, USA"
 
+  ###

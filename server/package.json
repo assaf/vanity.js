@@ -18,7 +18,8 @@
     "elastical":        "~0.0.7",
     "express":          "~2.5.8",
     "request":          "~2.9.153",
-    "sugar":            "~1.2.4"
+    "sugar":            "~1.2.4",
+    "winston":          "~0.5.11"
   },
   "devDependencies": {
     "crossfilter":      "~1.0.2",

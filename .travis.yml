@@ -1,0 +1,4 @@
+language: node_js
+script: "make setup test"
+node_js:
+  - 0.6

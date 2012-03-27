@@ -17,6 +17,7 @@ Express           = require("express")
 URL               = require("url")
 config            = require("../config")
 server            = require("../config/server")
+logger            = require("../config/logger")
 name              = require("../lib/names")
 geocode           = require("../lib/geocode")
 
@@ -212,9 +213,8 @@ Activity =
     # If location provided we need some geocoding action.
     if location
       geocode location, (error, result)->
-        # TODO: proper logging comes here
         if error
-          console.error error
+          logger.error error
         if result
           doc.location = result
         else
