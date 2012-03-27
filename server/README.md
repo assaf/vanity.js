@@ -49,6 +49,7 @@ Activities are represented as JSON objects with the following properties:
 * `content`   - Detailed JSON/HTML presentation of this activity.
 * `html`      - HTML presentation of the activity (read only).
 * `published` - Timestamp when activity was published (ISO3339).
+* `labels`    - Labels to associate with this activity.
 
 Each activity must have a universally unique identifier.  If you attempt to
 create two activities with the same identifier, only the first will be stored.
@@ -69,6 +70,10 @@ Activity object is optional.  It may specify the object `displayName`, `url` and
 
 Each activity has a published timestamp.  If not supplied when creating the
 activity, the current timestamp is used instead.
+
+Each activity may include one or more labels.  Labels are text strings that
+allow filtering of activities, e.g. all activities belonging to a project or a
+feature.
 
 
 ### Create A New Activity
@@ -135,7 +140,7 @@ The response document contains the following properties:
 ### Activity Stream
 
 ```
-GET /v1/activity
+GET /v1/activity/stream
 ```
 
 Returns a stream of activities as they are published to the server.  The
