@@ -1,10 +1,11 @@
 process.env.NODE_ENV = "test"
 
-Asynch    = require("async")
-Replay    = require("replay")
-Request   = require("request")
-server    = require("../../server/config/server")
-Activity  = require("../../server/models/activity")
+Asynch      = require("async")
+Replay      = require("replay")
+Request     = require("request")
+server      = require("../../server/config/server")
+Activity    = require("../../server/models/activity")
+EventSource = require("../../server/test/sse_client")
 
 
 Helper =
@@ -16,8 +17,8 @@ Helper =
       else
         callback()
 
+  # Create a new index.  Each test should run with a new index.
   newIndex: (callback)->
-    # Start out by deleting any index from previous run
     Activity.deleteIndex (error)->
       if error
         throw error
@@ -28,20 +29,34 @@ Helper =
           else
             callback()
 
-  # Returns all activities that match the search criteria.  Can also call with just callback.
-  search: (query, callback)->
-    [query, callback] = [null, query] unless callback
-    # Give ElasticSearch some time to sort itself before proceeding
+  # Connects to activity stream and waits for specified number of activities to
+  # come through, before passing array of activities to callback.
+  waitFor: (count, callback)->
+    # Collect activities into this array.
+    activities = []
+    # Open event source and start listening to events.
+    events = new EventSource("http://localhost:3003/v1/activity/stream")
+    events.onmessage = (event)->
+      activities.push JSON.parse(event.data)
+      # If we got as many activities as we need, close this event source and
+      # pass them on to callback.
+      if activities.length == count
+        events.close()
+        if callback
+          process.nextTick callback.bind(null, activities)
+          callback = null
+    events.onerror = (event)->
+      callback(event.error)
+    # Don't wait forever, in fact, some tests wil never collect any activities.
+    # When timeout, close the event stream, call callback with empty array.
     setTimeout ->
-      Activity.index().refresh ->
-        Request.get "http://localhost:3003/v1/activity", (error, response, body)->
-          if error
-            throw error
-          else if response.statusCode == 200
-            callback JSON.parse(body).items
-          else
-            throw new Error("Activity API returned #{response.statusCode}")
-    , 100
+      events.close()
+      if callback
+        process.nextTick callback.bind(null, [])
+        # Make sure callback is not called twice.
+        callback = null
+    , 250
+    return
 
 
 # To capture and record API calls, run with environment variable RECORD=true

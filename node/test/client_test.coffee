@@ -38,7 +38,7 @@ describe "activity", ->
               height:     200
           location: "San Francisco"
           labels:   ["funny", "die"]
-        Helper.search (activities)->
+        Helper.waitFor 1, (activities)->
           activity = activities[0]
           done()
       
@@ -87,7 +87,7 @@ describe "activity", ->
           verb:     "shared"
           object:   "victory dance"
           location: "San Francisco"
-        Helper.search (activities)->
+        Helper.waitFor 1, (activities)->
           activity = activities[0]
           done()
       
@@ -126,7 +126,7 @@ describe "activity", ->
         vanity.activity
           actor:    "Assaf"
           verb:     "shared"
-        Helper.search (activities)->
+        Helper.waitFor 1, (activities)->
           activity = activities[0]
           done()
       
@@ -160,7 +160,7 @@ describe "activity", ->
       Helper.newIndex ->
         last_error = null
         vanity.activity {}
-        Helper.search (activities)->
+        Helper.waitFor 1, (activities)->
           activity = activities[0]
           done()
       
@@ -182,7 +182,7 @@ describe "activity", ->
         nohost.activity
           actor:    "Assaf"
           verb:     "shared"
-        Helper.search (activities)->
+        Helper.waitFor 1, (activities)->
           activity = activities[0]
           done()
       
