@@ -4,7 +4,7 @@ Async             = require("async")
 { EventEmitter }  = require("events")
 request           = require("request")
 Activity          = require("../models/activity")
-EventSource       = require("./sse_client")
+EventSource       = require("./event_source")
 
 
 describe "activity", ->

@@ -5,7 +5,7 @@ Replay      = require("replay")
 Request     = require("request")
 server      = require("../../server/config/server")
 Activity    = require("../../server/models/activity")
-EventSource = require("../../server/test/sse_client")
+EventSource = require("../../server/test/event_source")
 
 
 Helper =

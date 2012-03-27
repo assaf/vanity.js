@@ -102,7 +102,9 @@ class EventSource
     if @readyState != EventSource.CLOSED
       @readyState = EventSource.OPEN
     if @onopen
-      process.nextTick @onopen
+      event = new MessageEvent()
+      event.type = "open"
+      process.nextTick  @onopen.bind(this, event)
 
   # This part deals with chunked transfer encoding and assembles the chunks back into a buffered message, from which we
   # can parse the event stream.  It receives each packet/buffer from Net.Client.
@@ -177,10 +179,13 @@ class EventSource
   # "When a user agent is to fail the connection, the user agent must queue a task which, if the readyState attribute is
   # set to a value other than CLOSED, sets the readyState attribute to CLOSED and fires a simple event named error at
   # the EventSource object. Once the user agent has failed the connection, it does not attempt to reconnect!"
-  _error: ->
+  _error: (error)->
     @close()
     if @onerror
-      process.nextTick @onerror
+      event = new MessageEvent()
+      event.type = "error"
+      event.error = error
+      process.nextTick  @onerror.bind(this, event)
 
   _reopen: ->
     # Not implemented at the moment.
