@@ -27,7 +27,8 @@ events = new EventEmitter()
 
 PROTOCOLS = ["http:", "https:", "mailto:"]
 
-# Parse and return URL.  Throws error if URL is not valid or contains unsupported protocol (e.g. javascript:).
+# Parse and return URL.  Throws error if URL is not valid or contains
+# unsupported protocol (e.g. javascript:).
 sanitizeUrl = (url)->
   return undefined unless url
   url = URL.parse(url, false, true)
@@ -35,7 +36,8 @@ sanitizeUrl = (url)->
     throw new Error("Only http/s and mailto URLs supported")
   return URL.format(url)
 
-# Sanitizes the image object, returning one that has sanitized URL and wight/height numbers.  May return undefined.
+# Sanitizes the image object, returning one that has sanitized URL and
+# wight/height numbers.  May return undefined.
 sanitizeImage = (image)->
   return undefined unless image && image.url
   result = url: sanitizeUrl(image.url)
@@ -121,19 +123,24 @@ Activity =
   # Creates a new activity.
   #
   # id        - Unique activity identifier.
-  # actor     - The actor is an object with id, displayName, url and image.  Requires at least id or displayName.
+  # actor     - The actor is an object with id, displayName, url and image.
+  #             Requires at least id or displayName.
   # verb      - Activity verb.
-  # object    - If activity has an object, it may specify displayName, url and/or image.
+  # object    - If activity has an object, it may specify displayName, url
+  #             and/or image.
   # location  - Optional and consists of displayName and lat, lon.
   # published - When activity was published (defaults to null).
   # labels    - Array of labels.
   #
-  # If no activity identifier is specified, one will be created based on the various activity fields.  If successfuly,
-  # the callback includes the activity identifier.
+  # If no activity identifier is specified, one will be created based on the
+  # various activity fields.  If successfuly, the callback includes the activity
+  # identifier.
   #
-  # Returns the activity identifier immediately.  Passes error and id to callback after storing activity.
+  # Returns the activity identifier immediately.  Passes error and id to
+  # callback after storing activity.
   #
-  # If required fields are missing, throws an error.  Make sure to catch it, callback will not be called.
+  # If required fields are missing, throws an error.  Make sure to catch it,
+  # callback will not be called.
   create: ({ id, published, actor, verb, object, location, labels }, callback)->
     unless verb
       throw new Error("Activity requires verb")
@@ -142,7 +149,8 @@ Activity =
     # Each activity has a timestamp, default to now.
     published = Date.create(published)
 
-    # If no activity specified, we use the activity content to create a unique ID.
+    # If no activity specified, we use the activity content to create a unique
+    # ID.
     unless id
       sha = Crypto.createHash("SHA1")
       values = [
@@ -156,8 +164,9 @@ Activity =
     doc =
       id: id.toString()
       actor:
-        # If actor name is not specified, we can make one up based on actor ID.  This is used when you have an
-        # anonymized activity stream, but still want to see related activities by same visitor.
+        # If actor name is not specified, we can make one up based on actor ID.
+        # This is used when you have an anonymized activity stream, but still
+        # want to see related activities by same visitor.
         id:           actor.id
         displayName:  actor.displayName || name(actor.id)
         url:          sanitizeUrl(actor.url)
@@ -166,10 +175,13 @@ Activity =
       published: new Date(published).toISOString()
 
     if labels
-      doc.labels = labels.map((label)-> label.toString())
+      doc.labels = labels.map((label)-> label.toString().trim())
+        .filter((label)-> label != "")
+        .unique()
 
-    # Some activities have an object.  An object must have display name and/or URL.  We show display name if we have
-    # one, but we consider the activity unique based on object URL (see SHA above).
+    # Some activities have an object.  An object must have display name and/or
+    # URL.  We show display name if we have one, but we consider the activity
+    # unique based on object URL (see SHA above).
     if object && (object.displayName || object.url)
       doc.object =
         displayName: object.displayName || sanitizeUrl(object.url)
@@ -307,7 +319,8 @@ Activity =
       if error
         callback error
       else
-        rows = results.hits.map((hit)-> { date: hit.fields.published, verb: hit.fields.verb })
+        rows = results.hits
+          .map((hit)-> { date: hit.fields.published, verb: hit.fields.verb })
         callback null, rows
 
 
