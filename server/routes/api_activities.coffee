@@ -13,7 +13,6 @@ server   = require("../config/server")
 #
 # Does not wait for activity to be indexed.
 server.post "/v1/activity", (req, res, next)->
-  logger.info req.body
   Activity.create req.body, (error, id)->
     if error
       res.send error.message, 400
