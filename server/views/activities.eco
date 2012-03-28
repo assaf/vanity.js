@@ -18,17 +18,12 @@ $(function() {
 
   // How many recent activites to show.
   var RECENT = 1000;
+  // How many activities to keep on page.
+  var MAXIMUM = 10000;
   // We operate on all activities, but generally interested in most recent.
-  var allActivities = crossfilter([]),
-      recent = allActivities.dimension(function(d) { return d.published });
+  var activities = [];
 
  
-  // Returns the top activities that should show on the page. 
-  function topActivities() {
-    return recent.top(RECENT);
-  }
-
-
   // Render most recent activities.
   //
   // highlight - If true, highlight the activity for a few seconds
@@ -36,13 +31,13 @@ $(function() {
     // From the top N activities, select only the ones showing based on their
     // verb.  If there is no specific entry in verbsShowing, we default to
     // "other".
-    var activities = filterLabels(filterVerbs(topActivities()));
+    var showing = filterLabels(filterVerbs(activities));
 
     // For each activity we add an LI element.  To highlight, we set the class
     // `highlight` and then quickly remove it, which causes a CSS transition.
     var list = d3.select("#stream"),
         selection = list.selectAll("li")
-                      .data(activities, function(d) { return d.id }),
+                      .data(showing, function(d) { return d.id }),
         li = selection.enter().append("li");
     li.html(function(d) {
       return d.html.replace(/(<time.*>).*(<\/time>)/, function(_, head, tail) {
@@ -68,17 +63,45 @@ $(function() {
   // Color scale - each verb gets its own distinct color.
   var VERB_COLORS = d3.scale.category20c();
 
+  /*
+  var verbs = {},
+      labels = {};
+
+  function add(activity) {
+    var verb = activity.verb;
+    verbs[verb] = (verbs[verb] || 0) + 1;
+    activity.labels.forEach(function(label) {
+      labels[label] = (labels[label] || 0) + 1;
+    }) 
+  }
+
+  function remove(activity) {
+    var verb = activity.verb,
+        count = verbs[verb];
+    if (count > 1)
+      verbs[verb] = count - 1;
+    else
+      delete verbs[verb];
+    activity.labels.forEach(function(label) {
+      var count = labels[label];
+      if (count > 1)
+        labels[label] = count - 1;
+      else
+        delete labels[label];
+    }) 
+  }
+  */
+
   // Keep track of which verbs are showing.
   var verbsShowing = {};
 
-  // The verb dimension and verbs group.  Group is sorted by frequency.
-  var verbsGroup = allActivities.dimension(function(d) { return d.verb; })
-    .group().reduceCount();
-
-
   // Returns a group with the top verbs.
   function topVerbs() {
-    return verbsGroup.top(TOP_VERBS);
+    return d3.nest().key(function(activity) { return activity.verb })
+      .rollup(function(value) { return value.length })
+      .entries(activities)
+      .sort(function(a, b) { return b.values - a.values })
+      .slice(0, TOP_VERBS);
   }
 
 
@@ -171,7 +194,7 @@ $(function() {
 
 
   function renderLabels() {
-    var all = d3.merge(topActivities().map(function(d) { return d.labels })),
+    var all = d3.merge(activities.map(function(d) { return d.labels })),
         labels = d3.nest().key(function(label) { return label })
           .rollup(function(value) { return value.length }).entries(all);
 
@@ -217,14 +240,17 @@ $(function() {
   // Load most recent activities.   This done once at page loading time and we
   // use this to show the initial activity list.
   $.getJSON("/v1/activity", { limit: RECENT }, function(result) {
-    allActivities.add(result.items);
+    // Add older activities to the end.
+    activities = activities.concat(result.items).slice(0, MAXIMUM);
     refresh();
   });
 
   // Connect to event source, get notifies of new activities and show them.
   var es = new EventSource("/v1/activity/stream");
   es.addEventListener("activity", function(event) {
-    allActivities.add([JSON.parse(event.data)]);
+    // Add new activity at the top (most recent), and only keep MAXIMUM around.
+    activities.unshift(JSON.parse(event.data));
+    activities = activities.slice(0, MAXIMUM);
     refresh(true); // highlight
   });
 
