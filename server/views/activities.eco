@@ -14,7 +14,7 @@ $(function() {
   // -- Activities --
 
   // How many recent activites to show.
-  var RECENT = 100;
+  var RECENT = 1000;
   // We operate on all activities, but generally interested in most recent.
   var allActivities = crossfilter([]),
       recent = allActivities.dimension(function(d) { return d.published });
@@ -47,6 +47,7 @@ $(function() {
                         .format("{Weekday}, {Mon} {d} {h}:{mm} {TT}") + tail
       })
     });
+    li.selectAll("div").append("span").attr("class", "color");
     if (highlight)
       li.attr("class", "highlight").transition().delay(1).attr("class", "")
     // Set the color of each activity based on its verb.
@@ -212,7 +213,7 @@ $(function() {
 
   // Load most recent activities.   This done once at page loading time and we
   // use this to show the initial activity list.
-  $.getJSON("/v1/activity", function(result) {
+  $.getJSON("/v1/activity", { limit: RECENT }, function(result) {
     allActivities.add(result.items);
     refresh();
   });

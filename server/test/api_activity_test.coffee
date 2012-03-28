@@ -7,7 +7,7 @@ Activity          = require("../models/activity")
 EventSource       = require("./event_source")
 
 
-describe "activity", ->
+describe "API activity", ->
   before Helper.setup
 
 

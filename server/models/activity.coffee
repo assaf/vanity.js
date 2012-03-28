@@ -16,7 +16,6 @@ Elastical         = require("elastical")
 Express           = require("express")
 URL               = require("url")
 config            = require("../config")
-server            = require("../config/server")
 logger            = require("../config/logger")
 pickName          = require("../lib/names")
 geocode           = require("../lib/geocode")
@@ -48,6 +47,9 @@ sanitizeImage = (image)->
 
 
 Activity =
+
+  # Max number of events to query at once.
+  LIMIT: 1000
 
   # ElasticSearch index mapping for activities.
   MAPPINGS:
@@ -265,7 +267,7 @@ Activity =
   #
   # Options are:
   # query  - Query string
-  # limit  - Only return that many results (up to 250)
+  # limit  - Only return that many results (up to LIMIT)
   # offset - Return results starting from this offset
   # start  - Activities published at/after the start time
   # end    - Activities published up to (excluding) the end time
@@ -280,7 +282,7 @@ Activity =
         query_string:
           query: options.query || "*"
       from:   options.offset || 0
-      size:   Math.min(options.limit || 250, 250)
+      size:   Math.min(options.limit || Activity.LIMIT, Activity.LIMIT)
       sort:   { published: { order: "desc" } }
     # Only if specified
     params.from = options.offset if options.offset

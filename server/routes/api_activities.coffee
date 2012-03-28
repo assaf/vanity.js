@@ -24,7 +24,7 @@ server.post "/v1/activity", (req, res, next)->
 #
 # Supports the following query parameters:
 # query   - Query string
-# limit   - How many results to return (up to 250)
+# limit   - How many results to return (up to LIMIT)
 # offset  - Start at this offset (default to 0)
 # start   - Returns activities published at/after this time (ISO8601)
 # end     - Returns activities published up (excluding) this time (ISO8601)

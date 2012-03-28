@@ -38,7 +38,7 @@ hourly = hourly_dist.done()
 
 # Delete and re-create index
 queue = []
-console.log "Deleting index ..."
+console.log "Creating index ..."
 Activity.createIndex ->
   console.log "Populating ElasticSearch with #{COUNT} activities ..."
 
