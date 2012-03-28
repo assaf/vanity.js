@@ -1,12 +1,15 @@
 <ol id="stream" class="stream">
 </ol>
 <aside>
-  <h2>Verbs</h2>
+  <h2>Actions</h2>
   <ol id="verbs" class="verb-selector">
   </ol>
+  <small>All/only actions that are On will show in stream</small>
   <h2>Labels</h2>
   <ol id="labels" class="label-selector">
   </ol>
+  <small>Only activities with *all* selected labels will show in stream.
+  All activities show when no labels selected.</small>
 </aside>
 <script>
 $(function() { 
