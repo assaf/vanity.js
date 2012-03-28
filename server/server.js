@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-var FS    = require("fs"),
-    Path  = require("path"),
-    HTTP  = require("http"),
-    Up    = require("up"),
-    OS    = require("os"),
-    port, workers, timeout, watch, pid;
+var FS     = require("fs"),
+    Path   = require("path"),
+    HTTP   = require("http"),
+    Up     = require("up"),
+    OS     = require("os"),
+    workers, watch, port, pid;
 
 
 // Default environment is development, saves us from accidentally connecting to
@@ -13,25 +13,26 @@ process.env.NODE_ENV = process.env.NODE_ENV || "development";
 
 // Configuration for production and development.
 if (process.env.NODE_ENV == "production") {
-  port = 80;
   workers = OS.cpus().length;
+  pid = Path.resolve(__dirname, "tmp/pids/server.pid");
+  port = 80;
   timeout = 60000;
-  pid = __dirname + "/tmp/pids/server.pid";
 } else {
-  port = 3000;
   workers = 1;
-  timeout = 1000;
   watch = true;
+  port = 3000;
+  timeout = 1000;
 }
+port = parseInt(process.env.PORT || port, 10);
+timeout = parseInt(process.env.TIMEOUT || timeout, 10);
 
 
 // Fire up the workers.
 var httpServer = HTTP.Server().listen(port),
-    server = Up(httpServer, __dirname + "/config/worker.js", { numWorkers: workers, workerTimeout: timeout });
+    server = Up(httpServer, Path.resolve(__dirname, "config/worker.js"), { numWorkers: workers, workerTimeout: timeout });
 
-if (pid) {
+if (pid)
   FS.writeFileSync(pid, process.pid.toString());
-}
 
 process.on("SIGUSR2", function () {
   console.log("Restarting ...");
