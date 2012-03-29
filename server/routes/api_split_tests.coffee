@@ -23,18 +23,16 @@ SplitTest = require("../models/split_test")
 # alternative - Alternative number
 # outcome     - Last outcome recorded
 server.put "/v1/split/:test/:id", (req, res, next)->
-  { alternative } = req.body
-  unless Object.isNumber(alternative)
-    res.send "Missing alternative number", 400
-    return
-  
-  test = new SplitTest(req.params.test)
-  test.addParticipant req.params.id, alternative, (error, result)->
-    console.log result
-    if error
-      next(error)
-    else if result.alternative == alternative
-      res.send result, 200
-    else
-      res.send result, 409
-
+  { alternative, outcome } = req.body
+ 
+  try
+    test = new SplitTest(req.params.test)
+    test.addParticipant req.params.id, alternative, (error, result)->
+      if error
+        next(error)
+      else if result.alternative == alternative
+        res.send result, 200
+      else
+        res.send result, 409
+  catch error
+    res.send error.message, 400

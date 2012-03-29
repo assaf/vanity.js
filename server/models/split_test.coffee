@@ -10,11 +10,13 @@ class SplitTest
 
   addParticipant: (pid, alternative, callback)->
     pid = pid.toString() unless Object.isString(pid)
-    alternative = Math.floor(alternative)
-    if isNaN(alternative)
-      process.nextTick ->
-        callback new Error("Alternative must be a number")
-      return
+
+    unless Object.isNumber(alternative)
+      throw new Error("Missing alternative number")
+    if alternative < 0
+      throw new Error("Alternative cannot be a negative number")
+    unless alternative == Math.floor(alternative)
+      throw new Error("Alternative must be an integer")
 
     # First check if we already know which alternative was presented.
     redis.hget "#{@base_key}.participants", pid, (error, known)=>
