@@ -85,3 +85,53 @@ describe "split", ->
         assert joined - Date.now() < 1000
         done()
 
+
+  # -- Error handling --
+  
+  describe "invalid test name", ->
+
+    it "should throw error", ->
+      try
+        vanity.split("foo+bar")
+      catch error
+        return
+      assert false, "Expected an error"
+
+  describe "no participant", ->
+
+    it "should throw error", ->
+      try
+        split.show()
+      catch error
+        return
+      assert false, "Expected an error"
+
+  describe "alternative is NaN", ->
+
+    it "should throw error", ->
+      try
+        split.show("1cf5814a", "foo")
+      catch error
+        return
+      assert false, "Expected an error"
+
+  describe "alternative is negative", ->
+
+    it "should throw error", ->
+      try
+        split.show("1cf5814a", -1)
+      catch error
+        return
+      assert false, "Expected an error"
+
+  describe "alternative is not integer", ->
+
+    it "should throw error", ->
+      try
+        split.show("1cf5814a", 1.2)
+      catch error
+        return
+      assert false, "Expected an error"
+
+
+
