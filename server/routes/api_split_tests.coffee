@@ -17,17 +17,17 @@ SplitTest = require("../models/split_test")
 # With alternative and outcome, records conversion with the specified value.
 #
 # If successful, returns the status code 200.  If participant already added with
-# a different alternative, returns the status code 409.
+# a different alternative, returns the status code 409.  For invalid outputs,
+# returns status code 400.
 #
 # In all cases, returns a JSON document with the following properties:
 # alternative - Alternative number
-# outcome     - Last outcome recorded
+# outcome     - Recorded outcome
 server.put "/v1/split/:test/:id", (req, res, next)->
   { alternative, outcome } = req.body
- 
   try
     test = new SplitTest(req.params.test)
-    test.addParticipant req.params.id, alternative, (error, result)->
+    test.setOutcome req.params.id, alternative, outcome, (error, result)->
       if error
         next(error)
       else if result.alternative == alternative
@@ -36,3 +36,27 @@ server.put "/v1/split/:test/:id", (req, res, next)->
         res.send result, 409
   catch error
     res.send error.message, 400
+
+
+# Returns information about participant.
+#
+# Path includes test and participant identifier.
+#
+# Response JSON document includes the following properties:
+# participant - Identifier
+# joined      - Timestamp when participant joined experiment
+# alternative - Alternative number
+# completed   - Timestamp when participant completed experiment
+# outcome     - Recorded outcome
+server.get "/v1/split/:test/:id", (req, res, next)->
+  try
+    test = new SplitTest(req.params.test)
+    test.getParticipant req.params.id, (error, result)->
+      if error
+        next(error)
+      else if result
+        res.send result
+      else
+        res.send 404
+  catch error
+    res.send error.message, 404
