@@ -23,11 +23,11 @@ SplitTest = require("../models/split_test")
 # In all cases, returns a JSON document with the following properties:
 # alternative - Alternative number
 # outcome     - Recorded outcome
-server.put "/v1/split/:test/:id", (req, res, next)->
+server.put "/v1/split/:test/:participant", (req, res, next)->
   { alternative, outcome } = req.body
   try
     test = new SplitTest(req.params.test)
-    test.setOutcome req.params.id, alternative, outcome, (error, result)->
+    test.setOutcome req.params.participant, alternative, outcome, (error, result)->
       if error
         next(error)
       else if result.alternative == alternative
@@ -48,10 +48,10 @@ server.put "/v1/split/:test/:id", (req, res, next)->
 # alternative - Alternative number
 # completed   - Timestamp when participant completed experiment
 # outcome     - Recorded outcome
-server.get "/v1/split/:test/:id", (req, res, next)->
+server.get "/v1/split/:test/:participant", (req, res, next)->
   try
     test = new SplitTest(req.params.test)
-    test.getParticipant req.params.id, (error, result)->
+    test.getParticipant req.params.participant, (error, result)->
       if error
         next(error)
       else if result

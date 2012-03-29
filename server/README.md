@@ -164,3 +164,60 @@ events.addEventListener("activity", function(event) {
 DELETE /v1/activity/:id
 ```
 
+
+### Participate In Split Test
+
+```
+PUT /v1/split/:test/:participant
+```
+
+Request path specifies the test and participant identifiers.
+
+The body is a JSON document (form parameters also supported) with the following
+properties:
+
+* alternative - Alternative number (0 ... n)
+* outcome     - A numeric value
+
+To indicate that participant is taking part in this split test, send a request
+with alternative number.  You can send this request any number of times, only
+the first update is stored.
+
+To indicate that participant converted, send a request with alternative number
+abd the outcome.  You can send this request any number of times, only the first
+update is stored.
+
+If successful, this request returns status code 200 and a JSON document with the
+following properties:
+
+* participant - Participant identifeir
+* alternative - Alternative number
+* outcome     - Recorded outcome
+
+If participant was already added with a different alternative, the request
+returns status code 409 (Conflict) and the above JSON document.
+
+If the test identifier, alternative number or outcome are invalid, the request
+returns status code 400.
+
+
+### Retrieve Participation In Split Test
+
+```
+GET /v1/split/:test/:participant
+```
+
+Request path specifies the test and participant identifiers.
+
+If successful, this request returns status code 200 and a JSON document with the
+following properties:
+
+* participant - Participant identifeir
+* joined      - When participant joined this test (RFC3339)
+* alternative - Alternative number
+* completed   - When participant completed this test (RFC3339)
+* outcome     - Recorded outcome
+
+If the participant never joined this split test, the request returns status code
+404.
+

@@ -127,36 +127,6 @@ describe "API split", ->
         done()
 
 
-  describe "set outcome to NaN", ->
-    statusCode = body = null
-
-    before (done)->
-      request.put base_url + "43c1c137", json: { alternative: 1, outcome: "NaN" }, (_, response)->
-        { statusCode, body } = response
-        done()
-
-    it "should return 200", ->
-      assert.equal statusCode, 200
-
-    it "should return participant identifier", ->
-      assert.equal body.participant, "43c1c137"
-
-    it "should return alternative number", ->
-      assert.equal body.alternative, 1
-
-    it "should return outcome as zero", ->
-      assert.equal body.outcome, 0
-
-    it "should store participant", (done)->
-      request.get base_url + "43c1c137", (_, { body })->
-        result = JSON.parse(body)
-        assert.equal result.participant, "43c1c137"
-        assert.equal result.alternative, 1
-        assert Date.create(result.joined) - Date.now() < 1000
-        assert.equal result.outcome, 0
-        assert Date.create(result.completed) - Date.now() < 1000
-        done()
-
 
   # -- Error handling --
   
@@ -219,3 +189,16 @@ describe "API split", ->
       assert.equal body, "Split test identifier may only contain alphanumeric, underscore and hyphen"
 
 
+  describe "outcome is NaN", ->
+    statusCode = body = null
+
+    before (done)->
+      request.put base_url + "43c1c137", json: { alternative: 1, outcome: "NaN" }, (_, response)->
+        { statusCode, body } = response
+        done()
+
+    it "should return 400", ->
+      assert.equal statusCode, 400
+
+    it "should return error", ->
+      assert.equal body, "Outcome must be numeric value"
