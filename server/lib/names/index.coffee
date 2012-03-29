@@ -34,7 +34,10 @@ female = (percentile)->
     female_names = tree.done()
 
   name = female_names(percentile % 100)
-  return name[0] + name[1..].toLowerCase()
+  if name
+    return name[0] + name[1..].toLowerCase()
+  else
+    return female(percentile / 10)
 
 
 # Returns a male name based on a random number between 0 and 100 (exclusive).
@@ -48,7 +51,10 @@ male = (percentile)->
     male_names = tree.done()
 
   name = male_names(percentile % 100)
-  return name[0] + name[1..].toLowerCase()
+  if name
+    return name[0] + name[1..].toLowerCase()
+  else
+    return male(percentile / 10)
 
 
 # Given an identifier, returns a suitable name (given name, followed by first later of family name).

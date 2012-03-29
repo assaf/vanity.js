@@ -16,16 +16,19 @@ describe "names", ->
 
   describe "males", ->
     it "should return James in 3.318 percentile", ->
-      assert.equal male(3.318), "James"
-      assert.notEqual male(3.319), "James"
+      assert.equal male(3.317), "James"
+      assert.notEqual male(3.318), "James"
 
     it "should return Wally in 89.939 percentile", ->
-      assert.equal male(89.939), "Wally"
-      assert.notEqual male(89.940), "Wally"
+      assert.equal male(89.938), "Wally"
+      assert.notEqual male(89.939), "Wally"
 
     it "should return Darell in 90.033 percentile", ->
-      assert.equal male(90.033), "Darell"
-      assert.notEqual male(90.034), "Darell"
+      assert.equal male(90.032), "Darell"
+      assert.notEqual male(90.033), "Darell"
+
+    it "should return David in 99.9 percentile", ->
+      assert.equal male(99.9), "Michael"
 
     it "should return Robert in 107 (wrap around) percentile", ->
       assert.equal male(107), "Robert"
@@ -59,23 +62,26 @@ describe "names", ->
         BRODERICK:  90.036
         ALONSO:     90.040
       for given, cumul of sample
-        assert.equal given, male(cumul).toUpperCase()
+        assert.equal given, male(cumul - 0.001).toUpperCase()
 
 
   describe "females", ->
     it "should return Mary in 2.629 percentile", ->
-      assert.equal female(2.629), "Mary"
-      assert.notEqual female(2.630), "Mary"
+      assert.equal female(2.628), "Mary"
+      assert.notEqual female(2.629), "Mary"
 
     it "should return Valentina in 84.047 percentile", ->
-      assert.equal female(84.047), "Valentina"
-      assert.notEqual female(84.048), "Valentina"
+      assert.equal female(84.046), "Valentina"
+      assert.notEqual female(84.047), "Valentina"
 
     it "should return Alona in 90.023 percentile", ->
-      assert.equal female(90.023), "Alona"
+      assert.equal female(90.022), "Alona"
 
     it "should return Barbara in 105 (wrap around) percentile", ->
       assert.equal female(105), "Barbara"
+
+    it "should return Dorothy in 99.9 percentile", ->
+      assert.equal female(99.9), "Dorothy"
 
     it "should work correctly for all names", ->
       sample =
@@ -116,7 +122,7 @@ describe "names", ->
         ALONA:      90.023
         ALLYN:      90.024
       for given, cumul of sample
-        assert.equal given, female(cumul).toUpperCase()
+        assert.equal given, female(cumul - 0.0001).toUpperCase()
 
 
   describe "from ID", ->
@@ -137,5 +143,5 @@ describe "names", ->
     it "should return different name for different ID", ->
       ids = ["07F9F5E2F3", "31F509B60E", "CDE02B9F4B", "D624D97240", "6913D09DA8", "8E44C8C990"]
       names = ids.map((id)-> name(id)).sort()
-      assert.deepEqual unique(names), ["Ann B.", "Audrey V.", "David M.", "Goldie R.", "Orville G.", "Robert Q."]
+      assert.deepEqual unique(names), ["Ann B.", "Audrey V.", "Cassie R.", "David M.", "Orville G.", "Robert Q."]
 

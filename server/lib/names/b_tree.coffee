@@ -95,24 +95,40 @@ add_item = (layer, limit, value)->
 find_top = (layer)->
   # Each layer that has two/more nodes points upwards, otherwise layer has one node, and we just need to return that
   # node.
-  return if layer.up then find_top(layer.up) else layer.first
+  if layer.up
+    return find_top(layer.up)
+  else
+    return layer.first
 
 
 # Balance the node (and all its children).  During construction we don't calculate the proper limit (or max) of a
 # node, so we need this bit of post-processing.
 balance = (node)->
-  return if typeof node.left == "string"
-  balance node.left
-  node.limit = node.left.max || node.left.limit
+  if typeof(node.left) == "string"
+    return
+  balance(node.left)
+  node.limit = node.left.max
   if node.right
-    balance node.right
-    node.max = node.right.max if node.right.max
+    balance(node.right)
+    node.max = node.right.max
+  else
+    node.max = node.limit
 
 
 # Recrusively find value based on key. 
 find = (node, key)->
-  next = if node.right && key > node.limit then node.right else node.left
-  return if typeof next == "string" then next else find(next, key)
+  if key >= node.max
+    next = null
+  else if key >= node.limit
+    next = node.right
+  else
+    next = node.left
+
+  if typeof(next) == "string"
+    return next
+  else if next
+    return find(next, key)
+
 
 
 # This is the tree constructor function.  It returns an object with two methods: add and done.
