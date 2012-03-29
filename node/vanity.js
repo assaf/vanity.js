@@ -112,4 +112,85 @@ Vanity.prototype.activity = function(activity) {
 }
 
 
+Vanity.prototype.split = function(id, alternatives) {
+  this.splits = this.splits || {};
+  var test = this.splits[id];
+  if (!test) {
+    test = new SplitTest(this, id, alternatives);
+    this.splits[id] = test;
+  }
+  return test;
+}
+
+function SplitTest(vanity, id, alternatives) {
+  this.id = id;
+  this.vanity = vanity;
+  this.baseUrl = "http://" + vanity.host + "/v1/split/" + id + "/";
+  this.alternatives = 2;
+}
+
+SplitTest.prototype.show = function(participant, alternative, callback) {
+  if (typeof(alternative) == "function") {
+    callback = alternative;
+    alternative = SplitTest.hash(participant) % this.alternatives;
+  } else if (arguments.length == 1)
+    alternative = SplitTest.hash(participant) % this.alternatives;
+
+  var vanity = this.vanity,
+      params = {
+        alternative: alternative
+      };
+  Request.put({ url: this.baseUrl + participant, json: params }, function(error, response, body) {
+    if (!error && response.statusCode >= 400 && response.statusCode != 409)
+      error = new Error("Server returned " + response.statusCode + ": " + body);
+    if (error) {
+      if (callback)
+        callback(error);
+      else
+        vanity.emit("error", error)
+    } else if (callback)
+      callback(null, body.alternative)
+  })
+  return alternative;
+}
+
+
+SplitTest.hash = function(identifier) {
+  var hash = 0,
+      char;
+  for (var i = 0 ; i < identifier.length ; ++i) {
+    char = identifier.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash // Convert to 32bit integer
+  }
+  return Math.abs(hash)
+}
+
+/*
+SplitTest.prototype.completed = function(participant, outcome) {
+  var params = {
+    alernative: alernative;
+    outcome:    outcome;
+  }
+  Request.put({ url: this.baseUrl + participant }, json: params, function(error, response, body) {
+    if (error)
+      self.emit("error", error)
+    else if (response.statusCode >= 400)
+      self.emit("error", new Error("Server returned " + response.statusCode + ": " + body));
+  })
+}
+
+*/
+SplitTest.prototype.get = function(participant, callback) {
+  Request.get({ url: this.baseUrl + participant }, function(error, _, body) {
+    var result;
+    if (body) {
+      result = JSON.parse(body);
+      result.joined = new Date(result.joined);
+    }
+    callback(error, result);
+  })
+}
+
+
 module.exports = Vanity

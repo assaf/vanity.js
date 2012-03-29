@@ -1,9 +1,10 @@
 process.env.NODE_ENV = "test"
 
-Asynch      = require("async")
+Async       = require("async")
 Replay      = require("replay")
 Request     = require("request")
 server      = require("../../server/config/server")
+redis       = require("../../server/config/redis")
 Activity    = require("../../server/models/activity")
 EventSource = require("../../server/test/event_source")
 
@@ -11,7 +12,12 @@ EventSource = require("../../server/test/event_source")
 Helper =
   # Fire up the Web server
   setup: (callback)->
-    server.listen 3003, (error)->
+    Async.parallel [
+      (done)->
+        redis.flushdb(done)
+    , (done)->
+        server.listen(3003, done)
+    ], (error)->
       if error
         throw error
       else
