@@ -1,15 +1,40 @@
 logger   = require("../config/logger")
+redis    = require("../config/redis")
 server   = require("../config/server")
-
-Redis  = require("redis")
-redis = Redis.createClient() #port, hostname)
+SplitTest = require("../models/split_test")
 
 
-server.post "/v1/split/:test/:id", (req, res, next)->
-  { test, id } = req.params
-  redis.hsetnx "vanity.split.#{test}.joined", "joined", Date.create(), ->
-    console.log arguments
-  if req.body.alternative
-    redis.hsetnx "vanity.split.#{test}.#{id}", "alt", req.body.alternative, ->
-      console.log arguments
-  res.send {}
+# Add participant or record outcome.
+#
+# Path includes test and participant identifier.
+#
+# Request is a JSON document with the following properties:
+# alternative - Alternative number (0 ... n)
+# outcome     - A number
+#
+# With only alternative, adds participant to split test.
+#
+# With alternative and outcome, records conversion with the specified value.
+#
+# If successful, returns the status code 200.  If participant already added with
+# a different alternative, returns the status code 409.
+#
+# In all cases, returns a JSON document with the following properties:
+# alternative - Alternative number
+# outcome     - Last outcome recorded
+server.put "/v1/split/:test/:id", (req, res, next)->
+  { alternative } = req.body
+  unless Object.isNumber(alternative)
+    res.send "Missing alternative number", 400
+    return
+  
+  test = new SplitTest(req.params.test)
+  test.addParticipant req.params.id, alternative, (error, result)->
+    console.log result
+    if error
+      next(error)
+    else if result.alternative == alternative
+      res.send result, 200
+    else
+      res.send result, 409
+

@@ -1,14 +1,21 @@
 process.env.NODE_ENV = "test"
 
+Async     = require("async")
 Browser   = require("zombie")
 Replay    = require("replay")
 server    = require("../config/server")
+redis     = require("../config/redis")
 Activity  = require("../models/activity")
 
 
 Helper =
   setup: (callback)->
-    server.listen 3003,callback
+    Async.series [
+      (done)->
+        redis.flushdb done
+    , (done)->
+        server.listen 3003, done
+    ], callback
 
   newIndex: (callback)->
     Activity.deleteIndex (error)->
