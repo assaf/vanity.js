@@ -211,9 +211,16 @@ class SplitTest
   update: (params, callback)->
     redis.hsetnx @_base_key, "created", Date.create().toISOString(), (error, changed)=>
       return callback(error) if error
-      redis.hmset @_base_key, params, (error, hash)=>
-        return callback(error) if error
+      # If no title was specified, we set one
+      if changed && !params.title
+        redis.hsetnx @_base_key, "title", @id.titleize()
+
+      if Object.isEmpty(params)
         @_load callback
+      else
+        redis.hmset @_base_key, params, (error, hash)=>
+          return callback(error) if error
+          @_load callback
 
  
 module.exports = SplitTest
