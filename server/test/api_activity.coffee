@@ -8,7 +8,8 @@ EventSource       = require("./event_source")
 
 
 describe "API activity", ->
-  before Helper.setup
+
+  before Helper.once
 
 
   # -- Creating an activity --
@@ -75,14 +76,14 @@ describe "API activity", ->
   
   describe "get activity", ->
 
+    before Helper.newIndex
     before (done)->
-      Helper.newIndex ->
-        params =
-          id:     "fe936972"
-          actor:  { displayName: "Assaf" }
-          verb:   "posted"
-          labels: ["image", "funny"]
-        Activity.create params, done
+      params =
+        id:     "fe936972"
+        actor:  { displayName: "Assaf" }
+        verb:   "posted"
+        labels: ["image", "funny"]
+      Activity.create params, done
 
     describe "", ->
       statusCode = body = headers = null
@@ -147,13 +148,13 @@ describe "API activity", ->
   describe "list activities", ->
     statusCode = body = headers = null
 
+    before Helper.newIndex
     before (done)->
-      Helper.newIndex ->
-        file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
-        Async.forEach JSON.parse(file), (activity, done)->
-          Activity.create activity, done
-        , ->
-          Activity.index().refresh done
+      file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
+      Async.forEach JSON.parse(file), (activity, done)->
+        Activity.create activity, done
+      , ->
+        Activity.index().refresh done
         
 
     describe "", ->
@@ -325,23 +326,22 @@ describe "API activity", ->
     # Collect events sent to event source.
     events = []
 
+    before Helper.newIndex
     before (done)->
-      Helper.newIndex ->
-        # Fire up the event source, we need to be connected to receive anything.
-        event_source = new EventSource("http://localhost:3003/v1/activity/stream")
-        # Wait until we're connected, then create activities and have then sent to event source.
-        event_source.onopen = ->
-          file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
-          Async.forEach JSON.parse(file), (activity, done)->
-            Activity.create activity, done
-          , ->
-        # Process activities as they come in.
-        event_source.addEventListener "activity", (event)->
-          events.push event
-          # We only wait for the first three events
-          if events.length == 3
-            event_source.close()
-            done()
+      # Fire up the event source, we need to be connected to receive anything.
+      event_source = new EventSource("http://localhost:3003/v1/activity/stream")
+      # Wait until we're connected, then create activities and have then sent to event source.
+      event_source.onopen = ->
+        file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
+        Async.forEach JSON.parse(file), (activity, done)->
+          Activity.create activity, done
+      # Process activities as they come in.
+      event_source.addEventListener "activity", (event)->
+        events.push event
+        # We only wait for the first three events
+        if events.length == 3
+          event_source.close()
+          done()
 
     it "should receive all three events", ->
       assert.equal events.length, 3
@@ -360,15 +360,16 @@ describe "API activity", ->
   # -- Deleting an activity --
   
   describe "delete", ->
+
+    before Helper.newIndex
     before (done)->
-      Helper.newIndex ->
-        activities = [
-          { id: "015f13c4", actor: { displayName: "Assaf" }, verb: "posted" },
-          { id: "75b12975", actor: { displayName: "Assaf" }, verb: "tested" }
-        ]
-        Async.forEach activities, (activity, done)->
-          Activity.create activity, done
-        , done
+      activities = [
+        { id: "015f13c4", actor: { displayName: "Assaf" }, verb: "posted" },
+        { id: "75b12975", actor: { displayName: "Assaf" }, verb: "tested" }
+      ]
+      Async.forEach activities, (activity, done)->
+        Activity.create activity, done
+      , done
 
     it "should delete activity", (done)->
       request.del "http://localhost:3003/v1/activity/015f13c4", ->

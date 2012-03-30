@@ -7,6 +7,7 @@
     <script src="/javascripts/sugar-1.2.4.min.js"></script>
     <script src="/javascripts/d3.v2.min.js"></script>
     <script src="/javascripts/crossfilter.min.js"></script>
+    <script src="/javascripts/activity.js"></script>
     <meta name="apple-mobile-web-app-capable" content="yes">
   </head>
   <body>

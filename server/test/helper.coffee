@@ -9,11 +9,14 @@ Activity  = require("../models/activity")
 
 
 Helper =
+  # Call this before running each test.
   setup: (callback)->
+    redis.flushdb(callback)
+
+  # Call this once before running all tests.
+  once: (callback)->
     Async.parallel [
       (done)->
-        redis.flushdb(done)
-    , (done)->
         server.listen(3003, done)
     ], (error)->
       if error
@@ -21,6 +24,7 @@ Helper =
       else
         callback()
 
+  # Call this before each test using ElasticSearch to recreate the index.
   newIndex: (callback)->
     Activity.deleteIndex (error)->
       if error

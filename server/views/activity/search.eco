@@ -1,0 +1,41 @@
+<form id="search">
+  <input type="text" name="query">
+  <button>Search</button>
+  <a target="query-syntax"
+  href="http://lucene.apache.org/core/old_versioned_docs/versions/3_5_0/queryparsersyntax.html">Help</a>
+</form>
+<ol id="activities" class="activities"></ol>
+<aside>
+  <h2>Actions</h2>
+  <ol id="verbs" class="verb-selector"></ol>
+</aside>
+<script>
+(function() {
+  var search = $("#search"),
+      activity = new Vanity.Activity("#activities");
+
+  search.submit(function(event) {
+    event.preventDefault();
+    var query = search.find(":text").val();
+    $.getJSON("/v1/activity", { query: query }, function(result) {
+      activity.render(result.items, true);
+    });
+    window.history.pushState({ query: query }, "", window.location.pathname + "?query=" + encodeURIComponent(query));
+  });
+
+  window.onpopstate = function(event) {
+    if (event.state) {
+      $.getJSON("/v1/activity", { query: event.state.query }, function(result) {
+        activity.render(result.items, true);
+      });
+    }
+  };
+
+  var params = Object.fromQueryString(window.location.search.slice(1)),
+      query = params.query;
+  search.find(":text").val(query);
+  $.getJSON("/v1/activity", { query: query }, function(result) {
+    activity.render(result.items, true);
+  })
+})();
+</script>

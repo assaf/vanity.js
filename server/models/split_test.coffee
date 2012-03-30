@@ -79,28 +79,32 @@ class SplitTest
     unless alternative == Math.floor(alternative)
       throw new Error("Alternative must be an integer")
 
-    # First check if we already know which alternative was presented.
-    redis.hget "#{@_base_key}.participants", participant, (error, known)=>
+    # Make sure this split test exists
+    redis.hsetnx @_base_key, "created", Date.create().toISOString(), (error)=>
       return callback(error) if error
-      if known != null
-        # Respond with identifier and alternative
-        callback error,
-          participant:  participant
-          alternative:  parseInt(known)
-        return
 
-      # Set the alternative if not already set (avoid race condition).
-      redis.hsetnx "#{@_base_key}.participants", participant, alternative, (error, changed)=>
+      # First check if we already know which alternative was presented.
+      redis.hget "#{@_base_key}.participants", participant, (error, known)=>
         return callback(error) if error
-        unless changed # Someone beat us to it
-          @getParticipant participant, callback
-          return
-
-        # Keep record of when participant joined
-        redis.zadd "#{@_base_key}.joined.#{alternative}", Date.now(), participant, (error)->
+        if known != null
+          # Respond with identifier and alternative
           callback error,
             participant:  participant
-            alternative:  alternative
+            alternative:  parseInt(known)
+          return
+
+        # Set the alternative if not already set (avoid race condition).
+        redis.hsetnx "#{@_base_key}.participants", participant, alternative, (error, changed)=>
+          return callback(error) if error
+          unless changed # Someone beat us to it
+            @getParticipant participant, callback
+            return
+
+          # Keep record of when participant joined
+          redis.zadd "#{@_base_key}.joined.#{alternative}", Date.now(), participant, (error)->
+            callback error,
+              participant:  participant
+              alternative:  alternative
     return
 
   
@@ -187,6 +191,30 @@ class SplitTest
             return callback(error) if error
             result.completed = new Date(parseInt(score))
             callback null, result
+
+
+  @load: (id, callback)->
+    try
+      test = new SplitTest(id)
+      test._load callback
+    catch error # test id is invalid
+      callback error
+
+  _load: (callback)->
+    redis.hgetall @_base_key, (error, hash)->
+      return callback(error) if error
+      unless hash.created
+        callback(null)
+        return
+
+      callback(null, hash)
+
+  update: (params, callback)->
+    redis.hsetnx @_base_key, "created", Date.create().toISOString(), (error, changed)=>
+      return callback(error) if error
+      redis.hmset @_base_key, params, (error, hash)=>
+        return callback(error) if error
+        @_load callback
 
  
 module.exports = SplitTest

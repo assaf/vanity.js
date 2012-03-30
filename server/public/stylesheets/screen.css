@@ -14,29 +14,29 @@ body {
  * These styles are used to render the activity stream as an ordered list of activities.
  * The root element is OL.activities
  */
-ol.stream {
+ol.activities {
   list-style: none;
   margin: 0;
   padding: 0;
   width: 640px;
   float: left;
 }
-ol.stream > li {
+ol.activities > li {
   margin: 0;
   padding: 8px 0 12px 0;
 }
-ol.stream + aside {
+ol.activities + aside {
   float: right;
   width: 240px;
 }
 
 /* Use this style to highlight new activities added to the stream */
-.stream > li.highlight {
+.activities > li.highlight {
   background-color: #ff8;
   -webkit-transition-duration: 0ms;
   -moz-transition-duration: 0ms;
 }
-.stream > li {
+.activities > li {
  background-color: #fff;
  -webkit-transition: background-color;
  -webkit-transition-timing-function: ease-in;
