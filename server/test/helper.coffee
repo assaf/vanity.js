@@ -10,12 +10,16 @@ Activity  = require("../models/activity")
 
 Helper =
   setup: (callback)->
-    Async.series [
+    Async.parallel [
       (done)->
-        redis.flushdb done
+        redis.flushdb(done)
     , (done)->
-        server.listen 3003, done
-    ], callback
+        server.listen(3003, done)
+    ], (error)->
+      if error
+        throw error
+      else
+        callback()
 
   newIndex: (callback)->
     Activity.deleteIndex (error)->

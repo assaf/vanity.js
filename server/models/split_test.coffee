@@ -48,7 +48,7 @@ class SplitTest
   # Create a new split test with the given identifier.  Throws exception is the
   # identifier is invalid.
   constructor: (id)->
-    unless id && /^[\w]+$/.test(id)
+    unless id && /^[\w\-]+$/.test(id)
       throw new Error("Split test identifier may only contain alphanumeric, underscore and hyphen")
     @_base_key = "#{SplitTest.NAMESPACE}.#{id}"
 
@@ -172,7 +172,7 @@ class SplitTest
         result =
           participant:  participant
           alternative:  parseInt(alternative)
-          joined:       Date.create(score)
+          joined:       new Date(parseInt(score))
 
         redis.hget "#{@_base_key}.outcomes", participant, (error, outcome)=>
           return callback(error) if error
@@ -185,7 +185,7 @@ class SplitTest
           # Get when participant compeleted this test
           redis.zscore "#{@_base_key}.completed.#{alternative}", participant, (error, score)->
             return callback(error) if error
-            result.completed = Date.create(score)
+            result.completed = new Date(parseInt(score))
             callback null, result
 
  
