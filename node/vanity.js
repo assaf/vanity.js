@@ -135,7 +135,7 @@ function SplitTest(vanity, id, alternatives) {
     throw new Error("Split test identifier may only contain alphanumeric, underscore and hyphen");
   this.id = id;
   this.vanity = vanity;
-  this.baseUrl = "http://" + vanity.host + "/v1/split/" + id + "/";
+  this.baseUrl = "http://" + vanity.host + "/v1/split/" + id;
   // Fix me later.
   this.alternatives = 2;
 
@@ -148,6 +148,16 @@ function SplitTest(vanity, id, alternatives) {
   // Two is when an alternative is set explicitly by some other client (or the
   // server), and we get that value back (409 Conflict).
   this._cache = {};
+
+  // Create the test on the server.
+  Request.put({ url: this.baseUrl, json: { } }, function(error, response, body) {
+    if (!error && response.statusCode >= 400 && response.statusCode != 409)
+      error = new Error("Server returned " + response.statusCode + ": " + body);
+    if (error)
+      vanity.emit("error", error)
+  })
+  
+  return this;
 }
 
 
@@ -226,7 +236,7 @@ SplitTest.prototype.show = function(participant, alternative, callback) {
   var vanity = this.vanity,
       cache  = this._cache,
       params = { alternative: alternative };
-  Request.put({ url: this.baseUrl + participant, json: params }, function(error, response, body) {
+  Request.put({ url: this.baseUrl + "/" + participant, json: params }, function(error, response, body) {
     // There are protocol errors (error) and server reported errors (4xx and
     // 5xx).  409 is a special case, this just tells us the alternative has been
     // set before to a different value.  We don't surface that at the moment.
@@ -280,7 +290,7 @@ SplitTest.prototype.completed = function(participant, outcome, callback) {
         alternative: (cached == undefined ? this.alternative(participant) : cached),
         outcome:     outcome
       };
-  Request.put({ url: this.baseUrl + participant, json: params }, function(error, response, body) {
+  Request.put({ url: this.baseUrl + "/" +participant, json: params }, function(error, response, body) {
     // There are protocol errors (error) and server reported errors (4xx and
     // 5xx).
     if (!error && response.statusCode >= 400)
@@ -308,14 +318,29 @@ SplitTest.prototype.completed = function(participant, outcome, callback) {
 SplitTest.prototype.get = function(participant, callback) {
   if (!callback)
     throw new Error("Expecting callback as last argument");
-  Request.get({ url: this.baseUrl + participant }, function(error, _, body) {
+  Request.get({ url: this.baseUrl + "/" +participant }, function(error, response, body) {
     var result;
-    if (body) {
+    if (!error && response.statusCode == 200) {
       result = JSON.parse(body);
       if (result.joined)
         result.joined = new Date(result.joined);
       if (result.completed)
         result.completed = new Date(result.completed);
+    }
+    callback(error, result);
+  })
+}
+
+
+SplitTest.prototype.stats = function(callback) {
+  if (!callback)
+    throw new Error("Expecting callback as last argument");
+  Request.get({ url: this.baseUrl }, function(error, response, body) {
+    var result;
+    if (!error && response.statusCode == 200) {
+      result = JSON.parse(body);
+      if (result.created)
+        result.created = new Date(result.created);
     }
     callback(error, result);
   })

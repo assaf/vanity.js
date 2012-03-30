@@ -165,3 +165,14 @@ Result contains:
 * outcome     - Outcome
 * completed   - When participant completed the test (Date)
 
+
+#### splittest.stats(callback)
+
+Retrieve all that is known about this split test.
+
+Result passed to callback with:
+
+* created     - Timestamp when test was created
+* title       - Human readable title
+
+

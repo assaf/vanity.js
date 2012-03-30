@@ -10,14 +10,13 @@ EventSource = require("../../server/test/event_source")
 
 
 Helper =
-  # Fire up the Web server
+  # Run before each test to clean up
   setup: (callback)->
-    Async.parallel [
-      (done)->
-        redis.flushdb(done)
-    , (done)->
-        server.listen(3003, done)
-    ], (error)->
+    redis.flushdb(callback)
+  
+  # Fire up the Web server
+  once: (callback)->
+    server.listen 3003, (error)->
       if error
         throw error
       else
