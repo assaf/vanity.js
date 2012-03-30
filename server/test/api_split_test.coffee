@@ -56,6 +56,16 @@ describe "API split test", ->
       it "should return created time", ->
         assert Date.create(test.created) - Date.now() < 1000
 
+      it "should return alterantives", ->
+        assert.equal test.alternatives.length, 2
+        assert.equal test.alternatives[0].title, "A"
+        assert.equal test.alternatives[1].title, "B"
+
+      it "should return alterantives of equal weight", ->
+        assert.equal test.alternatives.length, 2
+        assert.equal test.alternatives[0].weight, 0.5
+        assert.equal test.alternatives[1].weight, 0.5
+
 
     describe "some participants", ->
 

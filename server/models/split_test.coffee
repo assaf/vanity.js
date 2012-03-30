@@ -1,3 +1,4 @@
+Async = require("async")
 redis = require("../config/redis")
 
 
@@ -197,30 +198,96 @@ class SplitTest
       callback error
 
   _load: (callback)->
-    redis.hgetall @_base_key, (error, hash)=>
-      return callback(error) if error
-      unless hash.created
+    Async.parallel [
+      (done)=>
+        redis.hgetall @_base_key, done
+    , (done)=>
+      redis.lrange "#{@_base_key}.alternatives", 0, -1, done
+    , (done)=>
+      redis.lrange "#{@_base_key}.weights", 0, -1, done
+    ], (error, [hash, titles, weights])->
+      if (error)
+        callback(error)
+      else if !hash.created
         callback(null)
-        return
+      else
+        callback null,
+          created:      hash.created
+          title:        hash.title
+          alternatives: titles.map((title, i)-> { title: title, weight: weights[i] })
 
-      result =
-        created: hash.created
-        title:   hash.title || @id
-      callback(null, result)
 
   update: (params, callback)->
-    redis.hsetnx @_base_key, "created", Date.create().toISOString(), (error, changed)=>
-      return callback(error) if error
-      # If no title was specified, we set one
-      if changed && !params.title
-        redis.hsetnx @_base_key, "title", @id.titleize()
+    if params.title
+      unless Object.isString(params.title)
+        throw new Error("Title must be a string")
+    update =
+      title: params.title
 
-      if Object.isEmpty(params)
-        @_load callback
+    if params.alternatives
+      if Number.isNumber(params.alternatives)
+        # Create specified number of alternatives, evenly distributed
+        count = Math.floor(params.alternatives)
+        unless count > 1
+          throw new Error("Split test must have 2 or more alternatives")
+        if count > 10
+          throw new Error("Split test with 10 alternatives makes no sense")
+        alternatives = (1).upto(count).map((i)-> { title: (i + 64).chr() })
+      else if Array.isArray(params.alternatives)
+        # Map supplied array of alternatives (titles or titles + weights)
+        alternatives = []
+        for alt of params.alternatives
+          if Object.isString(alt)
+            alternatives.push { title: alt, weight: null }
+          else if Array.isArray(alt)
+            unless String.isString(alt[0])
+              throw new Error("Alternative must be [title, weight], title must be a string")
+            weight = parseInt(alt[1])
+            unless weight >= 0 && weight <= 1
+              throw new Error("Alternative must be [title, weight], weight must be value between 0 and 1")
+            alternatives.push { title: alt[0], weight: weight }
+        if alternatives.length > 10
+          throw new Error("Split test with 10 alternatives makes no sense")
+    else
+      # Default to two alternatives, A and B.
+      alternatives = [ { title: "A" }, { title: "B" } ]
+
+    # Step one, determine how much weight was specified
+    combined = 0
+    unspecified = 0
+    for alt in alternatives
+      if alt.weight == undefined
+        unspecified += 1
       else
-        redis.hmset @_base_key, params, (error, hash)=>
-          return callback(error) if error
-          @_load callback
+        if alt.weight < 0 || alt.weight > 1
+          throw new Error("Alternative weight must be value between 0 and 1 (inclusive)")
+        combined += alt.weight
+    if combined > 1
+      throw new Error("The combined weight of all alternatives can't surpass 1")
+    if unspecified > 0
+      fraction = (1 - combined) / unspecified
+      for alt in alternatives
+        if alt.weight == undefined
+          alt.weight = fraction
+          combined += fraction
+    if combined < 1
+      alternatives[0].weight += 1 - combined
+
+
+    multi = redis.multi()
+    multi.hsetnx @_base_key, "created", Date.create().toISOString()
+    # Make sure test always has a title
+    multi.hsetnx @_base_key, "title", @id.titleize()
+    unless Object.isEmpty(update)
+      multi.hmset @_base_key, update
+    multi.ltrim "#{@_base_key}.alternatives", 0, 0
+    multi.ltrim "#{@_base_key}.weights", 0, 0
+    for i, alt of alternatives
+      multi.rpush "#{@_base_key}.alternatives", alt.title
+      multi.rpush "#{@_base_key}.weights", alt.weight
+    multi.exec (error)=>
+      return callback(error) if error
+      @_load callback
 
  
 module.exports = SplitTest
