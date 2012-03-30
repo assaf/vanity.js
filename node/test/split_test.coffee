@@ -230,6 +230,24 @@ describe "split", ->
         return
       assert false, "Expected an error"
 
+  describe "outcome is a string", ->
+
+    it "should throw error", ->
+      try
+        split.completed("1cf5814a", "foo")
+      catch error
+        return
+      assert false, "Expected an error"
+
+  describe "outcome is null", ->
+
+    it "should throw error", ->
+      try
+        split.completed("1cf5814a", null)
+      catch error
+        return
+      assert false, "Expected an error"
+
 
   # -- Conflicts --
 

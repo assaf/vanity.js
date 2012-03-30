@@ -198,11 +198,11 @@ SplitTest.prototype.show = function(participant, alternative, callback) {
     throw new Error("Expecting participant to be identifier (string or number)");
 
   var cached = this._cache[participant];
-  if (typeof(alternative) == "function") {
+  if (arguments.length == 2 && typeof(alternative) == "function") {
     callback = alternative;
-    alternative = (cached == undefined ? (SplitTest.hash(participant) % this.alternatives) : cached);
+    alternative = (cached == undefined ? this.alternative(participant) : cached);
   } else if (arguments.length == 1) {
-    alternative = (cached == undefined ? (SplitTest.hash(participant) % this.alternatives) : cached);
+    alternative = (cached == undefined ? this.alternative(participant) : cached);
   } else {
     if (typeof(alternative) != "number" && !(alternative instanceof Number))
       throw new Error("Expecting alternative to be a number");
@@ -275,29 +275,35 @@ SplitTest.prototype.get = function(participant, callback) {
 }
 
 
-// Utility function to return a hash (larger number) form an identifier
-// (string).  Based on Java's String.hashCode()
-SplitTest.hash = function(identifier) {
-  var hash = 0,
-      char;
-  for (var i = 0 ; i < identifier.length ; ++i) {
-    char = identifier.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash // Convert to 32bit integer
-  }
-  return Math.abs(hash)
-}
-
-
+// Use this to record conversion (goal completion).
+//
+// Example:
+//   split.completed(userId)
+//
+// If you want to wait for response from the server, pass a callback as the
+// second argument.
+//
+// You can call this method multiple times for a given participant, only the
+// first call has any affect.  You can call this method without first calling
+// `show`, and it will also add the participant to the experiment.
 SplitTest.prototype.completed = function(participant, outcome, callback) {
-  if (typeof(outcome) == "function") {
+  // Yes we do get errors from the server for all these cases, but not all
+  // requests wait for a response, and better fail fast.
+  if (typeof(participant) != "string" && !(participant instanceof String) &&
+      typeof(participant) != "number" && !(participant instanceof Number))
+    throw new Error("Expecting participant to be identifier (string or number)");
+
+  if (arguments.length == 2 && typeof(outcome) == "function") {
     callback = outcome;
     outcome = 0;
-  }
+  } else if (arguments.length == 1)
+    outcome = 0;
+  else if (typeof(outcome) != "number" && !(outcome instanceof Number))
+    throw new Error("Expecting outcome to be a number");
   
   var cached = this._cache[participant],
       params = {
-        alternative: (cached == undefined ? (SplitTest.hash(participant) % this.alternatives) : cached),
+        alternative: (cached == undefined ? this.alternative(participant) : cached),
         outcome:     outcome
       };
   Request.put({ url: this.baseUrl + participant, json: params }, function(error, response, body) {
@@ -312,6 +318,24 @@ SplitTest.prototype.completed = function(participant, outcome, callback) {
   })
 }
 
+
+// Return alternative number for the given participant.
+//
+// participant - Participant identifier
+//
+// Returns alternative number between 0 and number of alternatives in this test
+// (exclusive).
+SplitTest.prototype.alternative = function(participant) {
+  var hash = 0,
+      char;
+  for (var i = 0 ; i < participant.length ; ++i) {
+    char = participant.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash // Convert to 32bit integer
+  }
+  hash = Math.abs(hash);
+  return hash % this.alternatives;
+}
 
 
 module.exports = Vanity
