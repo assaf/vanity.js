@@ -5,6 +5,7 @@ Async             = require("async")
 request           = require("request")
 EventSource       = require("./event_source")
 redis             = require("../config/redis")
+Vanity            = require("../../node/vanity")
 
 
 describe "API split test", ->
@@ -69,19 +70,27 @@ describe "API split test", ->
 
     describe "some participants", ->
 
-      test_url = base_url + "virgin"
+      test_url = base_url + "foo-bar"
       test = null
 
       before Helper.setup
       before (done)->
-        params =
-          title: "Foo vs Bar"
-        request.put test_url, json: params, done
-      before (done)->
-        request.get test_url, (_, response)->
-          { statusCode } = response
-          test = JSON.parse(response.body)
-          done()
+        vanity = new Vanity(host: "localhost:3003")
+        split = vanity.split("foo-bar")
+        setTimeout ->
+          params =
+            title:        "Foo vs Bar"
+            alternatives: ["foo", "bar"]
+          request.put test_url, json: params, ->
+            Async.forEach ["8c0521ee", "c2659ef8", "be8bb5b1", "f3cb65e5", "6d9d70c5"],
+              (id, done)->
+                split.show id, done
+            , (callback)->
+            request.get test_url, (_, response)->
+              { statusCode } = response
+              test = JSON.parse(response.body)
+              done()
+        , 100
 
       it "should return 200", ->
         assert.equal statusCode, 200
@@ -91,4 +100,9 @@ describe "API split test", ->
 
       it "should return created time", ->
         assert Date.create(test.created) - Date.now() < 1000
+
+      it "should return alterantives", ->
+        assert.equal test.alternatives.length, 2
+        assert.equal test.alternatives[0].title, "foo"
+        assert.equal test.alternatives[1].title, "bar"
 

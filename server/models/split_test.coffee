@@ -218,14 +218,15 @@ class SplitTest
 
 
   update: (params, callback)->
+    update = {}
+
     if params.title
       unless Object.isString(params.title)
         throw new Error("Title must be a string")
-    update =
-      title: params.title
+      update.title = params.title
 
     if params.alternatives
-      if Number.isNumber(params.alternatives)
+      if Object.isNumber(params.alternatives)
         # Create specified number of alternatives, evenly distributed
         count = Math.floor(params.alternatives)
         unless count > 1
@@ -236,7 +237,7 @@ class SplitTest
       else if Array.isArray(params.alternatives)
         # Map supplied array of alternatives (titles or titles + weights)
         alternatives = []
-        for alt of params.alternatives
+        for alt in params.alternatives
           if Object.isString(alt)
             alternatives.push { title: alt, weight: null }
           else if Array.isArray(alt)
@@ -280,8 +281,8 @@ class SplitTest
     multi.hsetnx @_base_key, "title", @id.titleize()
     unless Object.isEmpty(update)
       multi.hmset @_base_key, update
-    multi.ltrim "#{@_base_key}.alternatives", 0, 0
-    multi.ltrim "#{@_base_key}.weights", 0, 0
+    multi.del "#{@_base_key}.alternatives"
+    multi.del "#{@_base_key}.weights"
     for i, alt of alternatives
       multi.rpush "#{@_base_key}.alternatives", alt.title
       multi.rpush "#{@_base_key}.weights", alt.weight
