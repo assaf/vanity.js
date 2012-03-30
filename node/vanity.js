@@ -265,7 +265,10 @@ SplitTest.prototype.get = function(participant, callback) {
     var result;
     if (body) {
       result = JSON.parse(body);
-      result.joined = new Date(result.joined);
+      if (result.joined)
+        result.joined = new Date(result.joined);
+      if (result.completed)
+        result.completed = new Date(result.completed);
     }
     callback(error, result);
   })
@@ -286,21 +289,29 @@ SplitTest.hash = function(identifier) {
 }
 
 
-/*
-SplitTest.prototype.completed = function(participant, outcome) {
-  var params = {
-    alernative: alernative;
-    outcome:    outcome;
+SplitTest.prototype.completed = function(participant, outcome, callback) {
+  if (typeof(outcome) == "function") {
+    callback = outcome;
+    outcome = 0;
   }
-  Request.put({ url: this.baseUrl + participant }, json: params, function(error, response, body) {
-    if (error)
-      self.emit("error", error)
-    else if (response.statusCode >= 400)
-      self.emit("error", new Error("Server returned " + response.statusCode + ": " + body));
+  
+  var cached = this._cache[participant],
+      params = {
+        alternative: (cached == undefined ? (SplitTest.hash(participant) % this.alternatives) : cached),
+        outcome:     outcome
+      };
+  Request.put({ url: this.baseUrl + participant, json: params }, function(error, response, body) {
+    // There are protocol errors (error) and server reported errors (4xx and
+    // 5xx).
+    if (!error && response.statusCode >= 400)
+      error = new Error("Server returned " + response.statusCode + ": " + body);
+    if (callback)
+      callback(error, body && body.outcome)
+    else if (error)
+      vanity.emit("error", error)
   })
 }
 
-*/
 
 
 module.exports = Vanity

@@ -95,6 +95,94 @@ describe "split", ->
         done()
 
 
+  # -- Completing split test --
+  
+  describe "add participant and complete", ->
+    outcome = null
+
+    describe "no value", ->
+      before (done)->
+        split.show("79d778d8")
+        split.completed "79d778d8", (error, result)->
+          outcome = result
+          done()
+
+      it "should set outcome to zero", ->
+        assert.equal outcome, 0
+
+      it "should store alternative", (done)->
+        split.get "79d778d8", (error, { joined, alternative })->
+          assert.equal alternative, 0
+          assert joined - Date.now() < 1000
+          done()
+
+      it "should store outcome", (done)->
+        split.get "79d778d8", (error, { completed, outcome })->
+          assert.equal outcome, 0
+          assert completed - Date.now() < 1000
+          done()
+
+
+    describe "with value", ->
+      before (done)->
+        split.show("23c5b1da")
+        split.completed "23c5b1da", 5, (error, result)->
+          outcome = result
+          done()
+
+      it "should set outcome to five", ->
+        assert.equal outcome, 5
+
+      it "should store outcome", (done)->
+        split.get "23c5b1da", (error, { completed, outcome })->
+          assert.equal outcome, 5
+          assert completed - Date.now() < 1000
+          done()
+
+
+  describe "just complete", ->
+    outcome = null
+
+    before (done)->
+      split.completed "163b06c0", (error, result)->
+        outcome = result
+        done()
+
+    it "should set outcome to zero", ->
+      assert.equal outcome, 0
+
+    it "should store alternative", (done)->
+      split.get "163b06c0", (error, { joined, alternative })->
+        assert.equal alternative, 1
+        assert joined - Date.now() < 1000
+        done()
+
+    it "should store outcome", (done)->
+      split.get "163b06c0", (error, { completed, outcome })->
+        assert.equal outcome, 0
+        assert completed - Date.now() < 1000
+        done()
+
+
+  describe "two completions", ->
+    outcome = null
+
+    before (done)->
+      split.completed "3f8aab31", 7, (error, result)->
+        split.completed "3f8aab31", 9, (error, result)->
+          outcome = result
+          done()
+
+    it "should set outcome to first value", ->
+      assert.equal outcome, 7
+
+    it "should store first value", (done)->
+      split.get "3f8aab31", (error, { completed, outcome })->
+        assert.equal outcome, 7
+        assert completed - Date.now() < 1000
+        done()
+
+
   # -- Error handling --
   
   describe "invalid test name", ->
