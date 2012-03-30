@@ -1,8 +1,8 @@
 // Exports constructor for a Vanity client.
 //
-// Exmple:
+// Example:
 //   var Vanity = require("vanity"),
-//       vanity = new Vanity("vanity.internal:443", "secret token");
+//       vanity = new Vanity({ host: "vanity.internal:443", token: "secret token" });
 //
 //   vanity.activity({ actor: "Assaf", verb: "shared", object: "http://bit.ly/GLUa9S" })
 
@@ -248,33 +248,6 @@ SplitTest.prototype.show = function(participant, alternative, callback) {
 }
 
 
-// Retrieve all that is known about a participant.
-//
-// Arguments are:
-// participant - Participant identifier
-// callback    - Call with error and result (null if no participant)
-//
-// Result contains:
-// participant - Participant identifier
-// alternative - Alternative number
-// joined      - When participant joined the test (Date)
-// outcome     - Outcome
-// completed   - When participant completed the test (Date)
-SplitTest.prototype.get = function(participant, callback) {
-  Request.get({ url: this.baseUrl + participant }, function(error, _, body) {
-    var result;
-    if (body) {
-      result = JSON.parse(body);
-      if (result.joined)
-        result.joined = new Date(result.joined);
-      if (result.completed)
-        result.completed = new Date(result.completed);
-    }
-    callback(error, result);
-  })
-}
-
-
 // Use this to record conversion (goal completion).
 //
 // Example:
@@ -315,6 +288,33 @@ SplitTest.prototype.completed = function(participant, outcome, callback) {
       callback(error, body && body.outcome)
     else if (error)
       vanity.emit("error", error)
+  })
+}
+
+
+// Retrieve all that is known about a participant.
+//
+// Arguments are:
+// participant - Participant identifier
+// callback    - Call with error and result (null if no participant)
+//
+// Result contains:
+// participant - Participant identifier
+// alternative - Alternative number
+// joined      - When participant joined the test (Date)
+// outcome     - Outcome
+// completed   - When participant completed the test (Date)
+SplitTest.prototype.get = function(participant, callback) {
+  Request.get({ url: this.baseUrl + participant }, function(error, _, body) {
+    var result;
+    if (body) {
+      result = JSON.parse(body);
+      if (result.joined)
+        result.joined = new Date(result.joined);
+      if (result.completed)
+        result.completed = new Date(result.completed);
+    }
+    callback(error, result);
   })
 }
 
