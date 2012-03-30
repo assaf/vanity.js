@@ -138,19 +138,71 @@ function SplitTest(vanity, id, alternatives) {
   this.baseUrl = "http://" + vanity.host + "/v1/split/" + id + "/";
   // Fix me later.
   this.alternatives = 2;
+
+  // Calculating an alternative is cheap, so we don't bother caching it.  But
+  // there are two cases where we do want to cache.
+  //
+  // One is when an alternative is set explicitly by this client, we want to
+  // return the same value consistently.
+  //
+  // Two is when an alternative is set explicitly by some other client (or the
+  // server), and we get that value back (409 Conflict).
+  this._cache = {};
 }
 
 
+// Use this when choosing which alternative to show.
+//
+// If you want Vanity to pick up which alternative to show, call with one
+// argument (participant identifier) and it will return an alternative number.
+// This request updates the server but returns immediately without waiting for
+// response.
+//
+// Example:
+//   if (split.show(userId))
+//     render("optionB"); // Alternative 1 that we're testing
+//   else
+//     render("optionA"); // Alternative 0, our base line
+//
+// You can also call with participant and callback.  This will contact the
+// server, wait for response, and return the actual alternative number.  This is
+// the safest way to get the alternative.
+//
+// Example:
+//
+//   split.show(userId, function(error, alternative) {
+//     if (alternative)
+//       render("optionB"); // Alternative 1 that we're testing
+//     else
+//       render("optionA"); // Alternative 0, our base line
+//   })
+//
+// You can also force a particular alternative by calling with participant,
+// alternative number and optional callback.  Note that an alternative can be
+// set only once.  With a callback, you'll get the alternative stored on the
+// server, which may differ from the one passed as argument.
+//
+// Example:
+//
+//   // These users always sees the second option
+//   if (user.beta)
+//     split.show(userId, 1);
+//   split.show(userId, function(error, alternative) {
+//     . . .
+//   })
 SplitTest.prototype.show = function(participant, alternative, callback) {
+  // Yes we do get errors from the server for all these cases, but not all
+  // requests wait for a response, and better fail fast.
   if (typeof(participant) != "string" && !(participant instanceof String) &&
       typeof(participant) != "number" && !(participant instanceof Number))
     throw new Error("Expecting participant to be identifier (string or number)");
 
+  var cached = this._cache[participant];
   if (typeof(alternative) == "function") {
     callback = alternative;
-    alternative = SplitTest.hash(participant) % this.alternatives;
+    alternative = (cached == undefined ? (SplitTest.hash(participant) % this.alternatives) : cached);
   } else if (arguments.length == 1) {
-    alternative = SplitTest.hash(participant) % this.alternatives;
+    alternative = (cached == undefined ? (SplitTest.hash(participant) % this.alternatives) : cached);
   } else {
     if (typeof(alternative) != "number" && !(alternative instanceof Number))
       throw new Error("Expecting alternative to be a number");
@@ -158,24 +210,41 @@ SplitTest.prototype.show = function(participant, alternative, callback) {
       throw new Error("Expecting alternative to be a positive value");
     else if (alternative != Math.floor(alternative))
       throw new Error("Expecting alternative to be a positive value");
+
+    // If alternative was specified by caller, we want to return it next time
+    // around without the network call, so we cache the result passed here.
+    if (cached == undefined)
+      this._cache[participant] = alternative;
+    else
+      alternative = cached;
   }
 
+  if (callback && !typeof(callback) == "function")
+    throw new Error("Expecting callback to be a function");
+
+  // Request only sets the alternative.
   var vanity = this.vanity,
-      params = {
-        alternative: alternative
-      };
+      cache  = this._cache,
+      params = { alternative: alternative };
   Request.put({ url: this.baseUrl + participant, json: params }, function(error, response, body) {
+    // There are protocol errors (error) and server reported errors (4xx and
+    // 5xx).  409 is a special case, this just tells us the alternative has been
+    // set before to a different value.  We don't surface that at the moment.
     if (!error && response.statusCode >= 400 && response.statusCode != 409)
       error = new Error("Server returned " + response.statusCode + ": " + body);
-    if (error) {
-      if (callback)
-        callback(error);
-      else
-        vanity.emit("error", error)
-    } else if (callback)
-      callback(null, body.alternative)
-  })
-  return alternative;
+    if (response.statusCode == 409)
+      cache[participant] = body.alternative;
+    if (callback)
+      callback(error, body && body.alternative)
+    else if (error)
+      vanity.emit("error", error)
+    else if (response && response.statusCode == 409)
+      vanity.emit("conflict", { participant: participant,
+                                alternative: body.alternative,
+                                conflict: alternative })
+  });
+  if (!callback)
+    return alternative;
 }
 
 

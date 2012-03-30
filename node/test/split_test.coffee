@@ -3,8 +3,6 @@ Vanity = require("../")
 Helper = require("./helper")
 
 
-# cb0b203e
-
 describe "split", ->
   vanity      = new Vanity(host: "localhost:3003")
   split       = vanity.split("foo-bar")
@@ -19,18 +17,26 @@ describe "split", ->
 
     describe "no callback", ->
       before ->
-        alternative = split.show("8487599a", 1)
+        alternative = split.show("8487599a", 0)
 
       it "should return specified alternative", ->
-        assert.equal alternative, 1
+        assert.equal alternative, 0
+
+      it "should keep alternative in cache", ->
+        assert.equal split.show("8487599a"), 0
 
 
     describe "with callback", ->
       before (done)->
-        alternative = split.show("f3bfc5a1", 0, done)
+        split.show "f3bfc5a1", 0, (error, result)->
+          alternative = result
+          done()
 
-      it "should return specified alternative", ->
+      it "should pass specified alternative", ->
         assert.equal alternative, 0
+
+      it "should keep alternative in cache", ->
+        assert.equal split.show("f3bfc5a1"), 0
 
       it "should store participant", (done)->
         split.get "f3bfc5a1", (error, { joined, alternative })->
@@ -77,6 +83,9 @@ describe "split", ->
 
     it "should return first alternative", ->
       assert.equal alternative, 3
+
+    it "should keep first alternative in cache", ->
+      assert.equal split.show("1cf5814a"), 3
 
     it "should not change stored participant", (done)->
       split.get "1cf5814a", (error, { joined, alternative })->
@@ -134,4 +143,36 @@ describe "split", ->
       assert false, "Expected an error"
 
 
+  # -- Conflicts --
+
+  describe "conflicting alternatives", ->
+    split2 = null
+    faceValue = null
+
+    describe "specified", ->
+
+      before (done)->
+        # Client A sets the alternative to 3 and
+        split.show "cb0b203e", 3, ->
+          # Client B comes next ..
+          vanity2 = new Vanity(host: "localhost:3003")
+          split2  = vanity2.split("foo-bar")
+          # Set the alternative to 2.  This is now the at-face value.
+          split2.show("cb0b203e", 2)
+          faceValue = split2.show("cb0b203e")
+          # Get talking to the server
+          split2.show "cb0b203e", (error, alternative)->
+            # Let's see what's in the cache now ..
+            second = split2.show("cb0b203e")
+            done()
+
+      it "should accept initial value", ->
+        assert.equal faceValue, 2
+
+      it "should correct to original alternative", ->
+        # Let's see what's in the cache now ..
+        assert.equal split2.show("cb0b203e"), 3
+
+      it "should ignore any alternative we specify", ->
+        assert.equal split2.show("cb0b203e", 1), 3
 
