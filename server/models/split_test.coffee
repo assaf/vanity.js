@@ -47,10 +47,10 @@ class SplitTest
 
   # Create a new split test with the given identifier.  Throws exception is the
   # identifier is invalid.
-  constructor: (id)->
-    unless id && /^[\w\-]+$/.test(id)
+  constructor: (@id)->
+    unless @id && /^[\w\-]+$/.test(@id)
       throw new Error("Split test identifier may only contain alphanumeric, underscore and hyphen")
-    @_base_key = "#{SplitTest.NAMESPACE}.#{id}"
+    @_base_key = "#{SplitTest.NAMESPACE}.#{@id}"
 
 
   # Adds a participant.
@@ -79,32 +79,28 @@ class SplitTest
     unless alternative == Math.floor(alternative)
       throw new Error("Alternative must be an integer")
 
-    # Make sure this split test exists
-    redis.hsetnx @_base_key, "created", Date.create().toISOString(), (error)=>
+    # First check if we already know which alternative was presented.
+    redis.hget "#{@_base_key}.participants", participant, (error, known)=>
       return callback(error) if error
+      if known != null
+        # Respond with identifier and alternative
+        callback error,
+          participant:  participant
+          alternative:  parseInt(known)
+        return
 
-      # First check if we already know which alternative was presented.
-      redis.hget "#{@_base_key}.participants", participant, (error, known)=>
+      # Set the alternative if not already set (avoid race condition).
+      redis.hsetnx "#{@_base_key}.participants", participant, alternative, (error, changed)=>
         return callback(error) if error
-        if known != null
-          # Respond with identifier and alternative
-          callback error,
-            participant:  participant
-            alternative:  parseInt(known)
+        unless changed # Someone beat us to it
+          @getParticipant participant, callback
           return
 
-        # Set the alternative if not already set (avoid race condition).
-        redis.hsetnx "#{@_base_key}.participants", participant, alternative, (error, changed)=>
-          return callback(error) if error
-          unless changed # Someone beat us to it
-            @getParticipant participant, callback
-            return
-
-          # Keep record of when participant joined
-          redis.zadd "#{@_base_key}.joined.#{alternative}", Date.now(), participant, (error)->
-            callback error,
-              participant:  participant
-              alternative:  alternative
+        # Keep record of when participant joined
+        redis.zadd "#{@_base_key}.joined.#{alternative}", Date.now(), participant, (error)->
+          callback error,
+            participant:  participant
+            alternative:  alternative
     return
 
   
@@ -201,13 +197,16 @@ class SplitTest
       callback error
 
   _load: (callback)->
-    redis.hgetall @_base_key, (error, hash)->
+    redis.hgetall @_base_key, (error, hash)=>
       return callback(error) if error
       unless hash.created
         callback(null)
         return
 
-      callback(null, hash)
+      result =
+        created: hash.created
+        title:   hash.title || @id
+      callback(null, result)
 
   update: (params, callback)->
     redis.hsetnx @_base_key, "created", Date.create().toISOString(), (error, changed)=>

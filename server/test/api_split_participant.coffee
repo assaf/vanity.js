@@ -41,12 +41,6 @@ describe "API split test participants", ->
         assert Date.create(result.joined) - Date.now() < 1000
         done()
 
-    it "should create test", (done)->
-      request.get base_url, (error, response, body)->
-        assert.equal response.statusCode, 200
-        assert JSON.parse(body).created
-        done()
-
 
   # -- Change alternative --
   
@@ -136,12 +130,6 @@ describe "API split test participants", ->
         assert Date.create(result.joined) - Date.now() < 1000
         assert.equal result.outcome, 78
         assert Date.create(result.completed) - Date.now() < 1000
-        done()
-
-    it "should create test", (done)->
-      request.get base_url, (error, response, body)->
-        assert.equal response.statusCode, 200
-        assert JSON.parse(body).created
         done()
 
 

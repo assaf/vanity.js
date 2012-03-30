@@ -10,8 +10,6 @@ redis             = require("../config/redis")
 describe "API split test", ->
 
   base_url = "http://localhost:3003/v1/split/"
-  test =
-    title: "Foo vs Bar"
 
   before Helper.once
 
@@ -19,6 +17,7 @@ describe "API split test", ->
   # -- Retrieving test --
   
   describe "get test", ->
+
     statusCode = body = null
 
     describe "no such test", ->
@@ -33,16 +32,53 @@ describe "API split test", ->
 
 
     describe "no participants", ->
+
       test_url = base_url + "virgin"
+      test = null
 
       before Helper.setup
       before (done)->
-        request.put test_url, json: test, done
+        params =
+          title: "Foo vs Bar"
+        request.put test_url, json: params, done
       before (done)->
         request.get test_url, (_, response)->
-          { statusCode, body } = response
+          { statusCode } = response
+          test = JSON.parse(response.body)
           done()
 
       it "should return 200", ->
         assert.equal statusCode, 200
+
+      it "should return title", ->
+        assert.equal test.title, "Foo vs Bar"
+
+      it "should return created time", ->
+        assert Date.create(test.created) - Date.now() < 1000
+
+
+    describe "some participants", ->
+
+      test_url = base_url + "virgin"
+      test = null
+
+      before Helper.setup
+      before (done)->
+        params =
+          title: "Foo vs Bar"
+        request.put test_url, json: params, done
+      before (done)->
+        request.get test_url, (_, response)->
+          { statusCode } = response
+          test = JSON.parse(response.body)
+          done()
+
+      it "should return 200", ->
+        assert.equal statusCode, 200
+
+      it "should return title", ->
+        assert.equal test.title, "Foo vs Bar"
+
+      it "should return created time", ->
+        assert Date.create(test.created) - Date.now() < 1000
 
