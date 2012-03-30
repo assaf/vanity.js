@@ -99,7 +99,7 @@ Vanity.prototype.activity = function(activity) {
     Request.post({ url: "http://" + this.host + "/v1/activity", json: params }, function(error, response, body) {
       if (error)
         self.emit("error", error);
-      else if (response.statusCode >= 400)
+      else if (response && response.statusCode >= 400)
         self.emit("error", new Error("Server returned " + response.statusCode + ": " + body));
     })
   } catch (error) {
@@ -232,7 +232,7 @@ SplitTest.prototype.show = function(participant, alternative, callback) {
     // set before to a different value.  We don't surface that at the moment.
     if (!error && response.statusCode >= 400 && response.statusCode != 409)
       error = new Error("Server returned " + response.statusCode + ": " + body);
-    if (response.statusCode == 409)
+    if (response && response.statusCode == 409)
       cache[participant] = body.alternative;
     if (callback)
       callback(error, body && body.alternative)
@@ -275,6 +275,7 @@ SplitTest.prototype.completed = function(participant, outcome, callback) {
     throw new Error("Expecting outcome to be a number");
   
   var cached = this._cache[participant],
+      vanity = this.vanity,
       params = {
         alternative: (cached == undefined ? this.alternative(participant) : cached),
         outcome:     outcome
@@ -305,6 +306,8 @@ SplitTest.prototype.completed = function(participant, outcome, callback) {
 // outcome     - Outcome
 // completed   - When participant completed the test (Date)
 SplitTest.prototype.get = function(participant, callback) {
+  if (!callback)
+    throw new Error("Expecting callback as last argument");
   Request.get({ url: this.baseUrl + participant }, function(error, _, body) {
     var result;
     if (body) {

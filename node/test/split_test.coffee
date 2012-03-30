@@ -248,6 +248,20 @@ describe "split", ->
         return
       assert false, "Expected an error"
 
+  describe "not connected", ->
+    vanity = new Vanity(host: "nosuch")
+
+    it "should not throw error when adding participant", ->
+      vanity.split("foo-bar").show("6a59a671")
+
+    it "should not throw error when completing test", ->
+      vanity.split("foo-bar").completed("6a59a671")
+
+    it "should not throw error when getting participant", (done)->
+      vanity.split("foo-bar").get "6a59a671", (error)->
+        assert error
+        done()
+
 
   # -- Conflicts --
 
