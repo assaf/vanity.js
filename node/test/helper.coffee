@@ -12,7 +12,13 @@ EventSource = require("../../server/test/event_source")
 Helper =
   # Run before each test to clean up
   setup: (callback)->
-    redis.flushdb(callback)
+    redis.keys "#{redis.prefix}.*", (error, keys)->
+      if error
+        throw error
+      if keys.length == 0
+        callback()
+      else
+        redis.del keys..., callback
   
   # Fire up the Web server
   once: (callback)->

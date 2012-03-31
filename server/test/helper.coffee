@@ -11,7 +11,13 @@ Activity  = require("../models/activity")
 Helper =
   # Call this before running each test.
   setup: (callback)->
-    redis.flushdb(callback)
+    redis.keys "#{redis.prefix}.*", (error, keys)->
+      if error
+        throw error
+      if keys.length == 0
+        callback()
+      else
+        redis.del keys..., callback
 
   # Call this once before running all tests.
   once: (callback)->

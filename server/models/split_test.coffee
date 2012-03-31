@@ -43,15 +43,12 @@ class SplitTest
   # recorded in the hash but not the sorted set.
   
 
-  # Namespace
-  @NAMESPACE = "vanity.split"
-
   # Create a new split test with the given identifier.  Throws exception is the
   # identifier is invalid.
   constructor: (@id)->
     unless @id && /^[\w\-]+$/.test(@id)
       throw new Error("Split test identifier may only contain alphanumeric, underscore and hyphen")
-    @_base_key = "#{SplitTest.NAMESPACE}.#{@id}"
+    @_base_key = "#{redis.prefix}.split.#{@id}"
 
 
   # Adds a participant.
