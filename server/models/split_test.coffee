@@ -17,6 +17,14 @@ class SplitTest
 
   # Storage
   #
+  # The hash vanity.split.:test records general information about the test: its
+  # title and creation timestamp.
+  #
+  # The list vanity.split.:test.alternatives lists all the alternatives titles
+  # by their numeric order.
+  #
+  # The list vanity.split.:test.weights lists the weight of each alternative.
+  #
   # The hash vanity.split.:test.participants is a map from participant
   # identifier to alternative number.  We use this to note that a participant
   # joined the test and what alternative was shown to them.
@@ -202,16 +210,43 @@ class SplitTest
       redis.lrange "#{@_base_key}.alternatives", 0, -1, done
     , (done)=>
       redis.lrange "#{@_base_key}.weights", 0, -1, done
-    ], (error, [hash, titles, weights])->
+    ], (error, [test, titles, weights])=>
       if (error)
         callback(error)
-      else if !hash.created
+        return
+      if !test.created
         callback(null)
-      else
-        callback null,
-          created:      hash.created
-          title:        hash.title
-          alternatives: titles.map((title, i)-> { title: title, weight: weights[i] })
+        return
+
+      alternatives = titles.map((title, i)-> { title: title, weight: weights[i], index: i, data: {} })
+      Async.map alternatives, (alternative, done)=>
+        @_counts alternative.index, "joined", (error, counts)=>
+          alternative.participants = counts
+          done error, alternative
+      , (error, alternatives)=>
+        Async.map alternatives, (alternative, done)=>
+          @_counts alternative.index, "completed", (error, counts)->
+            alternative.completions = counts
+            done error, alternatives
+        , (error)->
+          if (error)
+            callback(error)
+          else
+            callback null,
+              created:      test.created
+              title:        test.title
+              alternatives: alternatives
+
+  _counts: (alternative, set, callback)->
+    redis.zrange "#{@_base_key}.#{set}.#{alternative}", 0, -1, "withscores", (error, data)->
+      return callback(error) if error
+      counts = data.inGroupsOf(2).reduce((counts, [id, timestamp])->
+        time = Math.floor(timestamp / 60000)
+        counts[time] = (counts[time] || 0) + 1
+        return counts
+      , {})
+      array = ({ time: time * 60000, count: count } for time, count of counts)
+      callback null, array
 
 
   update: (params, callback)->
