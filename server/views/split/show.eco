@@ -1,0 +1,26 @@
+<h1><%= @title %></h1>
+<p class="meta">Started <%= @created %></p>
+<div id="alternatives" class="alternatives">
+</div>
+<script>
+$(function() {
+  var testId = document.location.pathname.split("/").last();
+  $.getJSON("/v1/split/" + testId, function(test) {
+    var elems = d3.select("#alternatives")
+      .selectAll("alternative").data(test.alternatives)
+      .enter().append("div").attr("class", "alternative");
+    elems.attr("id", function(d, i) { return "alternative-" + i });
+    elems.append("h1").text(function(d) { return d.title });
+    elems.append("p").append("big").text(function(d) { 
+      var p = d.participants.reduce(function(count, entry) { return count + entry.count; }, 0),
+          c = d.completions.reduce(function(count, entry) { return count + entry.count; }, 0),
+          converted = c / p * 100;
+      return converted.format(2) + "%";
+    });
+    elems.append("p").append("small").text(function(d) {
+      var p = d.participants.reduce(function(count, entry) { return count + entry.count; }, 0);
+      return p + " participants";
+    });
+  })
+})
+</script>
