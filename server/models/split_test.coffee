@@ -17,19 +17,19 @@ class SplitTest
 
   # Storage
   #
-  # The hash vanity.split.:test records general information about the test: its
+  # vanity.split.:test hash records general information about the test: its
   # title and creation timestamp.
   #
-  # The list vanity.split.:test.alternatives lists all the alternatives titles
-  # by their numeric order.
+  # vanity.split.:test.alternatives list names all the alternatives by their
+  # numeric order.
   #
-  # The list vanity.split.:test.weights lists the weight of each alternative.
+  # vanity.split.:test.weights list specifies each alternative's weight.
   #
-  # The hash vanity.split.:test.participants is a map from participant
-  # identifier to alternative number.  We use this to note that a participant
-  # joined the test and what alternative was shown to them.
+  # vanity.split.:test.participants hash maps participant identifier to
+  # alternative number.  We use this to note that a participant joined the test
+  # and what alternative was shown to them.
   #
-  # The sorted set vanity.split.:test.joined.:alt stores when each participant
+  # vanity.split.:test.joined.:alt sorted set records when each participant
   # joined that test, using the timestamp as the score.  That allows us to
   # retrieve all participants for a given time range.  Having a set for each
   # alternative also makes it cheap to count participants for each alternative.
@@ -39,17 +39,17 @@ class SplitTest
   # numbers, but statistics should always be presented from a consisted set
   # (i.e. the joined sorted set).
   #
-  # The hash vanity.split.:test.outcome is a map from participant identifier to
-  # outcome value.  We use it to nore that a participant completed the test and
-  # with what outcome.
+  # vanity.split.:test.outcomes hash maps participant identifier to outcome
+  # value.  We use it to nore that a participant completed the test and with
+  # what outcome.
   #
-  # The sorted set vanity.split.:test.completed.:alt stores when each
-  # participant completed the test.  As with joined sorted set, it allows us to
-  # perform quick counts for each alternative.
+  # vanity.split.:test.completed.:alt sorted set records when each participant
+  # completed the test.  As with joined sorted set, it allows us to perform
+  # quick counts for each alternative.
   #
   # If failure happens, it is possible that a participant outcome will be
   # recorded in the hash but not the sorted set.
-  
+ 
 
   # Create a new split test with the given identifier.  Throws exception is the
   # identifier is invalid.
@@ -195,30 +195,114 @@ class SplitTest
             callback null, result
 
 
+  # Use this to load a test into memory.  Passes SplitTest object to callback,
+  # or null if test doesn't exist.
+  #
+  # The SplitTest properties include:
+  # title         - Humand readable title
+  # created       - Date/time when test was created
+  # alternatives  - Lists all the title and weight of each alternative
   @load: (id, callback)->
     try
       test = new SplitTest(id)
-      test._load callback
-    catch error # test id is invalid
+      test.load (error)->
+        if test.title && test.alternatives
+          callback null, test
+        else
+          callback null
+    catch error
       callback error
 
-  _load: (callback)->
+  # Load test into memory.  Used by SplitTest.load and after an update.
+  load: (callback)->
     Async.parallel [
       (done)=>
         redis.hgetall @_base_key, done
     , (done)=>
-      redis.lrange "#{@_base_key}.alternatives", 0, -1, done
+        redis.lrange "#{@_base_key}.alternatives", 0, -1, done
     , (done)=>
-      redis.lrange "#{@_base_key}.weights", 0, -1, done
-    ], (error, [test, titles, weights])=>
+        redis.lrange "#{@_base_key}.weights", 0, -1, done
+    ], (error, [hash, titles, weights])=>
       if (error)
         callback(error)
-        return
-      if !test.created
+      else
+        if hash
+          @title = hash.title
+          @created = hash.created
+        if titles && weights
+          @alternatives = titles.map((title, i)-> { title: title, weight: weights[i] })
         callback(null)
-        return
 
-      alternatives = titles.map((title, i)-> { title: title, weight: weights[i], index: i, data: {} })
+
+  # Loads test data and passes callback array with one element for each
+  # alternative, containing:
+  # title   - Alternative title
+  # weight  - Designated weight
+  # data    - Data points
+  #
+  # Each data point has the properties:
+  # time          - Time stamp (in hour increments) RFC3999
+  # participants  - How many participants joined during that hour
+  # completed     - How many of these participants completed the test
+  @data: (id, callback)->
+    base_key = "#{redis.prefix}.split.#{id}"
+    Async.parallel [
+      (done)->
+        redis.lrange "#{base_key}.alternatives", 0, -1, done
+    , (done)->
+        redis.lrange "#{base_key}.weights", 0, -1, done
+    ], (error, [titles, weights])=>
+      return callback(error) if error
+
+      alternatives = titles.map((title, i)-> { title: title, weight: weights[i] })
+      indices = alternatives.map((d, i)-> i)
+      Async.waterfall [
+        (done)->
+          # Load all the participants that ever completed the test and key on
+          # them.
+          redis.hkeys "#{base_key}.outcomes", (error, participants)->
+            completed = participants.reduce((hash, id)->
+              hash[id] = true
+              return hash
+            , {})
+            done(null, completed)
+      , (completed, doneJoined)->
+          Async.map indices, (index, doneMap)->
+            redis.zrange "#{base_key}.joined.#{index}", 0, -1, "withscores", (error, joined)->
+              return callback(error) if error
+              # Convert id, ts, id, ts, id, ts sequence into a object with time
+              # (rounded to hour) as the key and count of participants as value
+              data = {}
+              for [id, timestamp] in joined.inGroupsOf(2)
+                time = Date.create(parseInt(timestamp)).set(minute: 0, true)
+                obj = data[time] ||= { time: time }
+                # Count one participant, and count once if completed
+                obj.participants = (obj.participants || 0) + 1
+                obj.completed ||= 0
+                if completed[id]
+                  obj.completed += 1
+              doneMap(null, data)
+          , doneJoined
+      , (datum, done)->
+           sorted = (Object.values(data).sort("time") for data in datum)
+           done null, sorted
+      ], (error, datum)->
+        return callback(error) if error
+        for i, data of datum
+          alternatives[i].data = data
+        callback null, alternatives
+
+
+
+
+
+
+
+
+
+
+
+    ###
       Async.map alternatives, (alternative, done)=>
         @_counts alternative.index, "joined", (error, counts)=>
           alternative.participants = counts
@@ -247,6 +331,7 @@ class SplitTest
       , {})
       array = ({ time: time * 60000, count: count } for time, count of counts)
       callback null, array
+    ###
 
 
   update: (params, callback)->
@@ -289,7 +374,7 @@ class SplitTest
     combined = 0
     unspecified = 0
     for alt in alternatives
-      if alt.weight == undefined
+      if alt.weight == undefined || alt.weight == null
         unspecified += 1
       else
         if alt.weight < 0 || alt.weight > 1
@@ -300,7 +385,7 @@ class SplitTest
     if unspecified > 0
       fraction = (1 - combined) / unspecified
       for alt in alternatives
-        if alt.weight == undefined
+        if alt.weight == undefined || alt.weight == null
           alt.weight = fraction
           combined += fraction
     if combined < 1
@@ -319,8 +404,10 @@ class SplitTest
       multi.rpush "#{@_base_key}.alternatives", alt.title
       multi.rpush "#{@_base_key}.weights", alt.weight
     multi.exec (error)=>
-      return callback(error) if error
-      @_load callback
+      if error
+        callback(error)
+      else
+        @load callback
 
  
 module.exports = SplitTest

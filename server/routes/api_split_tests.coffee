@@ -15,21 +15,16 @@ SplitTest = require("../models/split_test")
 # Each alternative includes the following properties:
 # title         - Human readable title
 # weight        - Value between 0 and 1
-# participants  - Aggregate information about participants, an array of
-#   hour        - Date/time (hour resolution) in RFC3339
-#   count       - Number of participants joined during that hour
-# outcomes      - Aggregate information about outcomes
-#   hour        - Date/time (hour resolution) in RFC3339
-#   count       - Number of participants completed during that hour
-# conversion    - Total conversion for the period
 server.get "/v1/split/:test", (req, res, next)->
   SplitTest.load req.params.test, (error, test)->
-    if error
-      next(error)
-    else if test
-      res.send test
+    if test
+      res.send
+        id:           test.id
+        title:        test.title
+        created:      test.created
+        alternatives: test.alternatives
     else
-      res.send 404
+      next(error)
 
 
 # Creates or updates a split test.
@@ -45,12 +40,17 @@ server.get "/v1/split/:test", (req, res, next)->
 # For response JSON document, see GET method.
 server.put "/v1/split/:test", (req, res, next)->
   try
+    { title, alternatives } = req.body
     test = new SplitTest(req.params.test)
-    test.update req.body, (error, test)->
+    test.update req.body, (error)->
       if error
         next(error)
       else
-        res.send test
+        res.send
+          id:           test.id
+          title:        test.title
+          created:      test.created
+          alternatives: test.alternatives
   catch error
     res.send error.message, 400
 
@@ -79,14 +79,35 @@ server.put "/v1/split/:test/:participant", (req, res, next)->
   try
     test = new SplitTest(req.params.test)
     test.setOutcome req.params.participant, alternative, outcome, (error, result)->
-      if error
-        next(error)
-      else if result.alternative == alternative
-        res.send result, 200
+      if result
+        if result.alternative == alternative
+          res.send result, 200
+        else
+          res.send result, 409
       else
-        res.send result, 409
+        next(error)
   catch error
     res.send error.message, 400
+
+
+# Returns the raw data part of this split test.
+#
+# Response JSON document is an array with one element for each alternative,
+# with the properties:
+# title         - Human readable title
+# weight        - Value between 0 and 1
+# data          - Array of historical values
+#
+# Each entry of the data array has the properties:
+# time          - Date/time at 1 hour resoultion (RFC3339)
+# participants  - Number of participants joined during that hour
+# completed     - How many of these participants completed the test
+server.get "/v1/split/:test/data", (req, res, next)->
+  SplitTest.data req.params.test, (error, data)->
+    if data
+      res.send data
+    else
+      next(error)
 
 
 # Returns information about participant.
@@ -103,13 +124,10 @@ server.get "/v1/split/:test/:participant", (req, res, next)->
   try
     test = new SplitTest(req.params.test)
     test.getParticipant req.params.participant, (error, result)->
-      if error
-        next(error)
-      else if result
+      if result
         res.send result
       else
-        res.send 404
+        next(error)
   catch error
     res.send error.message, 404
-
 

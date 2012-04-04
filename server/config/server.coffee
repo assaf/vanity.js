@@ -65,6 +65,10 @@ server.configure "test", ->
     console.error error.stack
     next error
 
+  process.on "uncaughtException", (error)->
+    console.error error
+    process.exit(1)
+
 
 # Query and body parsing and routes.  These are also common in all environments.
 server.configure ->

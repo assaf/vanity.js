@@ -31,7 +31,6 @@ describe "API split test", ->
       it "should return 404", ->
         assert.equal statusCode, 404
 
-
     describe "no participants", ->
 
       test_url = base_url + "virgin"
@@ -44,8 +43,8 @@ describe "API split test", ->
         request.put test_url, json: params, done
       before (done)->
         request.get test_url, (_, response)->
-          { statusCode } = response
-          test = JSON.parse(response.body)
+          { statusCode, body } = response
+          test = JSON.parse(response.body) if statusCode == 200
           done()
 
       it "should return 200", ->
@@ -70,13 +69,13 @@ describe "API split test", ->
 
     describe "some participants", ->
 
-      test_url = base_url + "foo-bar"
+      test_url = base_url + "foobar1"
       test = null
 
       before Helper.setup
       before (done)->
         vanity = new Vanity(host: "localhost:3003")
-        split = vanity.split("foo-bar")
+        split = vanity.split("foobar1")
         params =
           title:        "Foo vs Bar"
           alternatives: ["foo", "bar"]
@@ -85,17 +84,12 @@ describe "API split test", ->
           Async.forEach ["8c0521ee", "c2659ef8", "be8bb5b1", "f3cb65e5", "6d9d70c5"],
             (id, done)->
               split.show id, done
-          , (callback)->
-            # Records completion
-            Async.forEach ["8c0521ee", "f3cb65e5"],
-              (id, done)->
-                split.completed id, done
-            , done
+          , done
       before (done)->
         # Collect the results
-        request.get test_url, (_, response)->
-          { statusCode } = response
-          test = JSON.parse(response.body)
+        request.get test_url, (error, response)->
+          { statusCode, body } = response
+          test = JSON.parse(response.body) if statusCode == 200
           done()
 
       it "should return 200", ->
@@ -107,15 +101,61 @@ describe "API split test", ->
       it "should return created time", ->
         assert Date.create(test.created) - Date.now() < 1000
 
-      it "should return participant counts", ->
-        foo = test.alternatives[0].participants
-        assert.equal foo[0].count, 2
-        bar = test.alternatives[1].participants
-        assert.equal bar[0].count, 3
 
-      it "should return completion counts", ->
-        foo = test.alternatives[0].completions
-        assert.equal foo.length, 0
-        bar = test.alternatives[1].completions
-        assert.equal bar[0].count, 2
 
+  # -- Test data --
+
+  describe "data", ->
+
+    test_url = base_url + "foobar2"
+    split = null
+    result = statusCode = null
+
+    before Helper.setup
+    before (done)->
+      vanity = new Vanity(host: "localhost:3003")
+      split = vanity.split("foobar2")
+      process.nextTick done
+    before (done)->
+      params =
+        title:        "Foo vs Bar"
+        alternatives: ["foo", "bar"]
+      request.put test_url, json: params, ->
+        # Record participants
+        Async.forEach ["8c0521ee", "c2659ef8", "be8bb5b1", "f3cb65e5", "6d9d70c5"],
+          (id, done)->
+            split.show id, done
+        , (callback)->
+          # Records completion
+          Async.forEach ["8c0521ee", "f3cb65e5"],
+            (id, done)->
+              split.completed id, done
+          , done
+    before (done)->
+      # Collect the results
+      request.get test_url + "/data", (_, response)->
+        { statusCode, body } = response
+        result = JSON.parse(response.body) if statusCode == 200
+        done()
+
+    it "should return 200", ->
+      assert.equal statusCode, 200
+
+    it "should return all alternatives and their titles", ->
+      assert.equal result[0].title, "foo"
+      assert.equal result[1].title, "bar"
+
+    it "should return all alternatives and their weights", ->
+      assert.equal result[0].weight, 0.5
+      assert.equal result[1].weight, 0.5
+
+    it "should return historical data for each alternative", ->
+      assert foo = result[0].data
+      assert.equal foo.length, 1
+      assert.equal foo[0].participants, 2, "No participants for foo"
+      assert.equal foo[0].completed, 0, "No test completed for foo"
+
+      assert bar = result[1].data
+      assert.equal bar.length, 1
+      assert.equal bar[0].participants, 3, "No participatnts for bar"
+      assert.equal bar[0].completed, 2, "No test completed for bar"
