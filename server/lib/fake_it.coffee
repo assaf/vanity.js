@@ -1,18 +1,21 @@
 # To populate ElasticSearch with 1000 activities over 3 days:
-#   coffee lib/take_if 1000
+#   coffee lib/take_if 1000 localhost:3000
 #
-# To push 5 activities through the API:
-#   coffee lib/take_if 5 localhost:3000
+# The first argument is number of iterations, optional and defaults to 1000.
+#
+# The second argument is hostname:port, optional and defaults to localhost:3000.
 
 
-assert    = require("assert")
-Async     = require("async")
-Crypto    = require("crypto")
-Request   = require("request")
-BTree     = require("./names/b_tree")
-name      = require("./names")
-Activity  = require("../models/activity")
-Vanity    = require("../../node/vanity")
+assert      = require("assert")
+Async       = require("async")
+Crypto      = require("crypto")
+Request     = require("request")
+Timekeeper  = require("timekeeper")
+BTree       = require("./names/b_tree")
+name        = require("./names")
+redis       = require("../config/redis")
+Activity    = require("../models/activity")
+SplitTest   = require("../models/split_test")
 require("sugar")
 
 
@@ -25,7 +28,7 @@ VERBS   = ["posted", "commented", "replied", "mentioned"]
 # Labels to choose from
 LABELS  = ["funny", "stupid", "smart"]
 # Server URL
-HOST    = process.argv[3]
+HOST    = process.argv[3] || "localhost:3000"
 
 
 # Activities not distributed evenly between hours of the day, use hourly(random) to get a made up distribution
@@ -89,31 +92,60 @@ fakeActivity = ->
 
 
 
-fakeSplitTest = (host, count, callback)->
-  console.log "Creating a fake split test foo-bar ..."
-  vanity = new Vanity(host: host)
-  split = vanity.split("foo-bar")
-  queue = []
+fakeSplitTest = (count, callback)->
+  split = new SplitTest("foo-bar")
 
-  for i in [0...count]
-    md5 = Crypto.createHash("md5")
-    id = md5.update(Math.random().toString()).digest("hex")
-   
-    queue.push (done)->
-      split.show id, ->
-        if Math.random() < 0.05
-          split.completed(id, done)
+  Async.waterfall [
+    (done)->
+      console.log "Wipe clean any split-test data"
+      redis.keys "#{redis.prefix}.*", (error, keys)->
+        if keys.length == 0
+          done(null, 0)
         else
-          done()
+          redis.del keys..., done
 
-  Async.parallel queue, (error)->
-    if error
-      throw error
-    else
+  , (_, done)->
+      console.log "Creating a fake split test foo-bar ..."
+      Timekeeper.travel Date.create().addDays(-count / 150)
+      split.update title: "Foo vs Bar", alternatives: 2, done
+
+  , (done)->
+      # Make unique participant identifier
+      newId = ->
+        Crypto.createHash("md5").update(Math.random().toString()).digest("hex")
+      # Load up on identifiers
+      ids = (newId() for i in [0...count])
+      done null, ids
+
+  , (ids, done)->
+      # Create participants from these IDs.  Do that serially, since we're playing
+      # with current time.
+      Async.forEachSeries ids, (id, each)->
+        Timekeeper.travel Date.create().addMinutes(576) # there are 150 of these in a day
+        alternative = Math.floor(Math.random() * 2)
+        split.addParticipant id, alternative, ->
+          if Math.random() < 0.05
+            split.setOutcome id, alternative, 0, each
+          else
+            each()
+      , done
+
+  , (done)->
       console.log "Published #{count} data points"
-      split.stats (error, stats)->
-        console.dir stats
+      Timekeeper.reset()
+      done()
+
+  ], callback
 
 
-fakeSplitTest "localhost:3000", 1000
+Async.series [
+  (done)->
+    fakeActivity HOST, COUNT, done
+    done()
+, (done)->
+    fakeSplitTest COUNT, done
+], (error)->
+  throw error if error
+  console.log "Done"
+  process.exit 0
 

@@ -1,26 +1,307 @@
-<h1><%= @title %></h1>
-<p class="meta">Started <%= @created %></p>
-<div id="alternatives" class="alternatives">
+<div class="split-test">
+  <h1><%= @title %></h1>
+  <div id="alternatives" class="alternatives"></div>
+  <p class="meta">This test was started <%= Date.create(@created).relative() %></p>
 </div>
 <script>
 $(function() {
+  var DAYS = ["S", "M", "T", "W", "T ", "F", "S "];
+
   var testId = document.location.pathname.split("/").last();
-  $.getJSON("/v1/split/" + testId, function(test) {
-    var elems = d3.select("#alternatives")
-      .selectAll("alternative").data(test.alternatives)
-      .enter().append("div").attr("class", "alternative");
-    elems.attr("id", function(d, i) { return "alternative-" + i });
-    elems.append("h1").text(function(d) { return d.title });
-    elems.append("p").append("big").text(function(d) { 
-      var p = d.participants.reduce(function(count, entry) { return count + entry.count; }, 0),
-          c = d.completions.reduce(function(count, entry) { return count + entry.count; }, 0),
-          converted = c / p * 100;
-      return converted.format(2) + "%";
+  $.getJSON("/v1/split/" + testId + "/data", function(alternatives) {
+    var divs = d3.select("#alternatives")
+          .selectAll("alternative").data(alternatives)
+          .enter().append("div");
+    divs
+      .attr("class", "alternative")
+      .attr("id", function(d, i) { return "alternative-" + i });
+    divs.each(renderAlternative);
+  });
+
+
+  function renderAlternative(alternative) {
+    // The alternative container element
+    var el = d3.select(this);
+    // The reduce functions.  These are called for each data point, and we need
+    // to tally the participants and completed so we can calculate conversion.
+    function reduceAdd(last, d) {
+      last.participants += d.participants;
+      last.completed += d.completed;
+      last.converted = last.completed / last.participants;
+      return last;
+    }
+    function reduceRemove(last, d) {
+      last.participants -= d.participants;
+      last.completed -= d.completed;
+      last.converted = last.completed / last.participants;
+      return last;
+    }
+    function reduceInitial() {
+      return { participants: 0, completed: 0 }
+    }
+    // The value function: we're interested in converted.
+    function value(d) {
+      return d.converted || 0;
+    }
+
+    var xfilter = crossfilter(alternative.data),
+        day   = xfilter.dimension(function(d) { return DAYS[Date.create(d.time).getDay()]; }),
+        days  = day.group().reduce(reduceAdd, reduceRemove, reduceInitial).order(value),
+        hour  = xfilter.dimension(function(d) { return Date.create(d.time).getHours(); }),
+        hours = hour.group().reduce(reduceAdd, reduceRemove, reduceInitial).order(value),
+        all   = xfilter.groupAll().reduce(reduceAdd, reduceRemove, reduceInitial);
+
+    // Fill it up with content: header, big value (conversion), small value
+    // (participants), and chart.
+    el.append("h1").text(alternative.title);
+    el.append("big");
+    el.append("small");
+    el.append("div").attr("class", "chart days")
+      .append("h3").attr("class", "title");
+    el.append("div").attr("class", "chart hours")
+      .append("h3").attr("class", "title");
+
+    // Now let's do some charts.
+    var charts = [
+      barChart(resetChart) // Day
+        .dimension(day).group(days).value(value)
+        .x(d3.scale.ordinal().domain(DAYS).range(d3.range(0, 80, 10))),
+      barChart(resetChart) // Hour
+        .dimension(hour).group(hours).value(value)
+        .x(d3.scale.linear().domain([0, 24]).rangeRound([0, 10 * 24]))
+    ];
+
+    // Renders the specified chart or list.
+    function render(method) {
+      var value = all.value(),
+          converted = value.converted;
+      d3.select(this).call(method);
+      el.select("small").text(value.participants);
+      console.log(converted)
+      if (isNaN(converted))
+        el.select("big").text("N/A");
+      else
+        el.select("big").text((converted * 100).format(2) + "%");
+    }
+
+    // Whenever the brush moves, re-rendering everything.
+    function renderAll() {
+      chart.each(render);
+    }
+
+    var chart = el.selectAll(".chart").data(charts)
+          .each(function(chart) { chart.on("brush", renderAll).on("brushend", renderAll); });
+    renderAll();
+
+    function resetChart(i) {
+      charts[i].filter(null);
+      renderAll();
+    };
+  }
+
+
+  function barChart(resetChart) {
+    if (!barChart.id) barChart.id = 0;
+
+    var margin = { top: 10, right: 10, bottom: 20, left:10 },
+        x,
+        y = d3.scale.linear().range([100, 0]),
+        id = barChart.id++,
+        axis = d3.svg.axis().orient("bottom"),
+        brush = d3.svg.brush(),
+        value = function(d) { return d },
+        brushDirty,
+        dimension,
+        group,
+        round;
+
+    function chart(div) {
+      var width = d3.last(x.range()),
+          height = y.range()[0];
+
+      y.domain([0, value(group.top(1)[0].value)]);
+
+      div.each(function() {
+        var div = d3.select(this),
+            g = div.select("g");
+
+        // Create the skeletal chart.
+        if (g.empty()) {
+          div.select(".title").append("a")
+              .attr("class", "reset")
+              .text("reset")
+              .style("display", "none");
+          div.select(".title a").on("click", function() {
+            d3.event.preventDefault();
+            resetChart(id)
+          });
+
+          g = div.append("svg")
+              .attr("width", width + margin.left + margin.right)
+              .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+              .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+          g.append("clipPath")
+              .attr("id", "clip-" + id)
+            .append("rect")
+              .attr("width", width)
+              .attr("height", height);
+
+          g.selectAll(".bar")
+              .data(["background", "foreground"])
+            .enter().append("path")
+              .attr("class", function(d) { return d + " bar"; })
+              .datum(group.all());
+
+          g.selectAll(".foreground.bar")
+              .attr("clip-path", "url(#clip-" + id + ")");
+
+          g.append("g")
+              .attr("class", "axis")
+              .attr("transform", "translate(0," + height + ")")
+              .call(axis);
+
+          // Initialize the brush component with pretty resize handles.
+          var gBrush = g.append("g").attr("class", "brush").call(brush);
+          gBrush.selectAll("rect").attr("height", height);
+          gBrush.selectAll(".resize").append("path").attr("d", resizePath);
+        }
+
+        // Only redraw the brush if set externally.
+        if (brushDirty) {
+          brushDirty = false;
+          g.selectAll(".brush").call(brush);
+          div.select(".title a").style("display", brush.empty() ? "none" : null);
+          if (brush.empty()) {
+            g.selectAll("#clip-" + id + " rect")
+                .attr("x", 0)
+                .attr("width", width);
+          } else {
+            var extent = brush.extent();
+            g.selectAll("#clip-" + id + " rect")
+                .attr("x", x(extent[0]))
+                .attr("width", x(extent[1]) - x(extent[0]));
+          }
+        }
+
+        g.selectAll(".bar").attr("d", barPath);
+      });
+
+      function barPath(groups) {
+        var path = [],
+            i = -1,
+            n = groups.length,
+            d;
+        while (++i < n) {
+          d = groups[i];
+          path.push("M", x(d.key), ",", height, "V", y(value(d.value)), "h9V", height);
+        }
+        return path.join("");
+      }
+
+      function resizePath(d) {
+        var e = +(d == "e"),
+            x = e ? 1 : -1,
+            y = height / 3;
+        return "M" + (.5 * x) + "," + y
+            + "A6,6 0 0 " + e + " " + (6.5 * x) + "," + (y + 6)
+            + "V" + (2 * y - 6)
+            + "A6,6 0 0 " + e + " " + (.5 * x) + "," + (2 * y)
+            + "Z"
+            + "M" + (2.5 * x) + "," + (y + 8)
+            + "V" + (2 * y - 8)
+            + "M" + (4.5 * x) + "," + (y + 8)
+            + "V" + (2 * y - 8);
+      }
+    }
+
+    brush.on("brushstart.chart", function() {
+      var div = d3.select(this.parentNode.parentNode.parentNode);
+      div.select(".title a").style("display", null);
     });
-    elems.append("p").append("small").text(function(d) {
-      var p = d.participants.reduce(function(count, entry) { return count + entry.count; }, 0);
-      return p + " participants";
+
+    brush.on("brush.chart", function() {
+      var g = d3.select(this.parentNode),
+          extent = brush.extent();
+      if (round) g.select(".brush")
+          .call(brush.extent(extent = extent.map(round)))
+        .selectAll(".resize")
+          .style("display", null);
+      g.select("#clip-" + id + " rect")
+          .attr("x", x(extent[0]))
+          .attr("width", x(extent[1]) - x(extent[0]));
+      dimension.filterRange(extent);
     });
-  })
+
+    brush.on("brushend.chart", function() {
+      if (brush.empty()) {
+        var div = d3.select(this.parentNode.parentNode.parentNode);
+        div.select(".title a").style("display", "none");
+        div.select("#clip-" + id + " rect").attr("x", null).attr("width", "100%");
+        dimension.filterAll();
+      }
+    });
+
+    chart.margin = function(_) {
+      if (!arguments.length) return margin;
+      margin = _;
+      return chart;
+    };
+
+    chart.x = function(_) {
+      if (!arguments.length) return x;
+      x = _;
+      axis.scale(x);
+      brush.x(x);
+      return chart;
+    };
+
+    chart.y = function(_) {
+      if (!arguments.length) return y;
+      y = _;
+      return chart;
+    };
+
+    chart.dimension = function(_) {
+      if (!arguments.length) return dimension;
+      dimension = _;
+      return chart;
+    };
+
+    chart.filter = function(_) {
+      if (_) {
+        brush.extent(_);
+        dimension.filterRange(_);
+      } else {
+        brush.clear();
+        dimension.filterAll();
+      }
+      brushDirty = true;
+      return chart;
+    };
+
+    chart.group = function(_) {
+      if (!arguments.length) return group;
+      group = _;
+      return chart;
+    };
+
+    chart.round = function(_) {
+      if (!arguments.length) return round;
+      round = _;
+      return chart;
+    };
+
+    chart.value = function(_) {
+      if (!arguments.length) return value;
+      value = _;
+      return chart;
+    };
+
+    return d3.rebind(chart, brush, "on");
+  }
+
+
 })
 </script>

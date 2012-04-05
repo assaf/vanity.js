@@ -294,46 +294,6 @@ class SplitTest
 
 
 
-
-
-
-
-
-
-
-
-    ###
-      Async.map alternatives, (alternative, done)=>
-        @_counts alternative.index, "joined", (error, counts)=>
-          alternative.participants = counts
-          done error, alternative
-      , (error, alternatives)=>
-        Async.map alternatives, (alternative, done)=>
-          @_counts alternative.index, "completed", (error, counts)->
-            alternative.completions = counts
-            done error, alternatives
-        , (error)->
-          if (error)
-            callback(error)
-          else
-            callback null,
-              created:      test.created
-              title:        test.title
-              alternatives: alternatives
-
-  _counts: (alternative, set, callback)->
-    redis.zrange "#{@_base_key}.#{set}.#{alternative}", 0, -1, "withscores", (error, data)->
-      return callback(error) if error
-      counts = data.inGroupsOf(2).reduce((counts, [id, timestamp])->
-        time = Math.floor(timestamp / 60000)
-        counts[time] = (counts[time] || 0) + 1
-        return counts
-      , {})
-      array = ({ time: time * 60000, count: count } for time, count of counts)
-      callback null, array
-    ###
-
-
   update: (params, callback)->
     update = {}
 

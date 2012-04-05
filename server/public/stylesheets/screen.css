@@ -9,6 +9,13 @@ body {
 }
 
 
+.main-content {
+  width: 960px;
+  position: relative;
+  margin: 24px 0;
+}
+
+
 /* -- Activity stream --
  *
  * These styles are used to render the activity stream as an ordered list of activities.
@@ -200,6 +207,51 @@ ol.activities + aside {
   border-radius: 0 8px 8px 0;
   margin-left: 2px;
   width: 8em;
+}
+
+
+/* -- Split tests
+ *
+ */
+.split-test h1 {
+  text-align: center;
+}
+.split-test .meta {
+  color: #444;
+}
+.split-test .alternative {
+  width: 480px;
+  float: left;
+}
+.split-test .alternative:odd {
+  margin-right: 8px;
+}
+.split-test .alternative:even {
+  margin-left: 8px;
+}
+.split-test .alternative h2 {
+  text-align: center;
+  font-size: 18pt;
+}
+.split-test .alternative big {
+  text-align: center;
+  display: block;
+  font-size: 36pt;
+}
+.split-test .alternative small {
+  text-align: center;
+  display: block;
+  font-size: 12pt;
+}
+.split-test .alternative small:before {
+  content: "Out of ";
+}
+.split-test .alternative small:after {
+  content: " participants";
+}
+.split-test .alternative .chart {
+  width: 420px;
+  height: 200px;
 }
 
 
