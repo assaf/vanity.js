@@ -273,9 +273,9 @@ class SplitTest
               # Convert id, ts, id, ts, id, ts sequence into a object with time
               # (rounded to hour) as the key and count of participants as value
               data = {}
-              for [id, timestamp] in joined.inGroupsOf(2)
-                time = Date.create(parseInt(timestamp)).set(minute: 0, true)
-                obj = data[time] ||= { time: time }
+              for [id, time] in joined.inGroupsOf(2)
+                time -= time % 3600000
+                obj = data[time] ||= { time: Date.create(time) }
                 # Count one participant, and count once if completed
                 obj.participants = (obj.participants || 0) + 1
                 obj.completed ||= 0
@@ -284,14 +284,13 @@ class SplitTest
               doneMap(null, data)
           , doneJoined
       , (datum, done)->
-           sorted = (Object.values(data).sort("time") for data in datum)
-           done null, sorted
+          sorted = (Object.values(data).sort("time") for data in datum)
+          done null, sorted
       ], (error, datum)->
         return callback(error) if error
         for i, data of datum
           alternatives[i].data = data
         callback null, alternatives
-
 
 
   update: (params, callback)->

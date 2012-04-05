@@ -254,6 +254,7 @@ ol.activities + aside {
 .split-test .alternative .chart {
   float: left;
   height: 140px;
+  margin-bottom: 32px;
 }
 .split-test .alternative .chart .title {
 }
