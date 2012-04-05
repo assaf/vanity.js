@@ -218,25 +218,27 @@ ol.activities + aside {
 }
 .split-test .meta {
   color: #444;
+  text-align: center;
 }
 .split-test .alternative {
-  width: 480px;
+  width: 460px;
   float: left;
+  -webkit-box-shadow: 4px 4px 16px #ccc;
 }
-.split-test .alternative:odd {
-  margin-right: 8px;
+.split-test .alternative:nth-child(odd) {
+  margin-right: 20px;
 }
-.split-test .alternative:even {
-  margin-left: 8px;
+.split-test .alternative:nth-child(even) {
+  margin-left: 10px;
 }
 .split-test .alternative h2 {
   text-align: center;
-  font-size: 18pt;
+  font-size: 22pt;
 }
 .split-test .alternative big {
   text-align: center;
   display: block;
-  font-size: 36pt;
+  font-size: 72pt;
 }
 .split-test .alternative small {
   text-align: center;
@@ -250,8 +252,23 @@ ol.activities + aside {
   content: " participants";
 }
 .split-test .alternative .chart {
-  width: 420px;
-  height: 200px;
+  float: left;
+  height: 140px;
+}
+.split-test .alternative .chart .title {
+}
+.split-test .alternative .chart.days {
+  width: 120px;
+  margin: 32px 0 32px 30px;
+}
+.split-test .alternative .chart.hours {
+  margin: 32px 30px 32px 20px;
+  width: 260px;
+}
+.split-test .alternative .chart:after {
+  content: " ";
+  display: block;
+  clear: both;
 }
 
 
@@ -284,7 +301,9 @@ ol.activities + aside {
 .reset {
   padding-left: 1em;
   font-size: smaller;
-  color: #ccc;
+  color: blue;
+  float: right;
+  cursor: pointer;
 }
 
 .background.bar {
@@ -313,21 +332,5 @@ ol.activities + aside {
 .brush .resize path {
   fill: #eee;
   stroke: #666;
-}
-
-#hour-chart {
-  width: 260px;
-}
-
-#day-chart {
-  width: 90px;
-}
-
-#date-chart {
-  width: 920px;
-}
-
-#verb-chart {
-  width: 220px;
 }
 

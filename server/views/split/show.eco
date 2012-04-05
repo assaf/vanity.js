@@ -1,11 +1,11 @@
 <div class="split-test">
   <h1><%= @title %></h1>
-  <div id="alternatives" class="alternatives"></div>
   <p class="meta">This test was started <%= Date.create(@created).relative() %></p>
+  <div id="alternatives" class="alternatives"></div>
 </div>
 <script>
 $(function() {
-  var DAYS = ["S", "M", "T", "W", "T ", "F", "S "];
+  var DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
   var testId = document.location.pathname.split("/").last();
   $.getJSON("/v1/split/" + testId + "/data", function(alternatives) {
@@ -45,7 +45,7 @@ $(function() {
     }
 
     var xfilter = crossfilter(alternative.data),
-        day   = xfilter.dimension(function(d) { return DAYS[Date.create(d.time).getDay()]; }),
+        day   = xfilter.dimension(function(d) { return Date.create(d.time).getDay(); }),
         days  = day.group().reduce(reduceAdd, reduceRemove, reduceInitial).order(value),
         hour  = xfilter.dimension(function(d) { return Date.create(d.time).getHours(); }),
         hours = hour.group().reduce(reduceAdd, reduceRemove, reduceInitial).order(value),
@@ -57,18 +57,20 @@ $(function() {
     el.append("big");
     el.append("small");
     el.append("div").attr("class", "chart days")
-      .append("h3").attr("class", "title");
+      .append("div").attr("class", "title").text("Day of week");
     el.append("div").attr("class", "chart hours")
-      .append("h3").attr("class", "title");
+      .append("div").attr("class", "title").text("Time of day");
 
     // Now let's do some charts.
     var charts = [
-      barChart(resetChart) // Day
+      barChart() // Day
         .dimension(day).group(days).value(value)
-        .x(d3.scale.ordinal().domain(DAYS).range(d3.range(0, 80, 10))),
-      barChart(resetChart) // Hour
+        .x(d3.scale.linear().domain([0, 7]).rangeRound([0, 10 * 8]))
+        .reset(resetChart),
+      barChart() // Hour
         .dimension(hour).group(hours).value(value)
         .x(d3.scale.linear().domain([0, 24]).rangeRound([0, 10 * 24]))
+        .reset(resetChart)
     ];
 
     // Renders the specified chart or list.
@@ -77,7 +79,6 @@ $(function() {
           converted = value.converted;
       d3.select(this).call(method);
       el.select("small").text(value.participants);
-      console.log(converted)
       if (isNaN(converted))
         el.select("big").text("N/A");
       else
@@ -100,7 +101,11 @@ $(function() {
   }
 
 
-  function barChart(resetChart) {
+
+
+
+
+  function barChart() {
     if (!barChart.id) barChart.id = 0;
 
     var margin = { top: 10, right: 10, bottom: 20, left:10 },
@@ -113,7 +118,8 @@ $(function() {
         brushDirty,
         dimension,
         group,
-        round;
+        round,
+        reset;
 
     function chart(div) {
       var width = d3.last(x.range()),
@@ -133,7 +139,8 @@ $(function() {
               .style("display", "none");
           div.select(".title a").on("click", function() {
             d3.event.preventDefault();
-            resetChart(id)
+            if (reset)
+              reset(id);
           });
 
           g = div.append("svg")
@@ -296,6 +303,12 @@ $(function() {
     chart.value = function(_) {
       if (!arguments.length) return value;
       value = _;
+      return chart;
+    };
+
+    chart.reset = function(_) {
+      if (!arguments.length) return reset;
+      reset = _;
       return chart;
     };
 
