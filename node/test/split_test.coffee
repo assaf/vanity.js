@@ -101,21 +101,21 @@ describe "split", ->
     before (done)->
       vanity = new Vanity(host: "localhost:3003")
       split  = vanity.split("foo-bar")
-      split.show "1cf5814a", 3, ->
-        split.show "1cf5814a", 2, (error, result)->
+      split.show "1cf5814a", true, ->
+        split.show "1cf5814a", false, (error, result)->
           alternative = error || result
           done()
 
     it "should return first alternative", ->
-      assert.equal alternative, 3
+      assert.equal alternative, 1
 
     it "should keep first alternative in cache", ->
-      assert.equal split.show("1cf5814a"), 3
+      assert.equal split.show("1cf5814a"), 1
 
     it "should not change stored participant", (done)->
       split.get "1cf5814a", (error, { joined, alternative })->
         assert !error
-        assert.equal alternative, 3
+        assert.equal alternative, 1
         assert joined - Date.now() < 1000
         done()
 
@@ -123,108 +123,40 @@ describe "split", ->
   # -- Completing split test --
   
   describe "add participant and complete", ->
-    outcome = null
 
-    describe "no value", ->
+    before Helper.setup
+    before (done)->
+      vanity = new Vanity(host: "localhost:3003")
+      split  = vanity.split("foo-bar")
+      split.show("79d778d8")
+      split.completed "79d778d8", (error, result)->
+        done()
 
-      before Helper.setup
-      before (done)->
-        vanity = new Vanity(host: "localhost:3003")
-        split  = vanity.split("foo-bar")
-        split.show("79d778d8")
-        split.completed "79d778d8", (error, result)->
-          outcome = result
-          done()
+    it "should store alternative", (done)->
+      split.get "79d778d8", (error, { joined, alternative })->
+        assert.equal alternative, 0
+        assert joined - Date.now() < 1000
+        done()
 
-      it "should set outcome to zero", ->
-        assert.equal outcome, 0
-
-      it "should store alternative", (done)->
-        split.get "79d778d8", (error, { joined, alternative })->
-          assert.equal alternative, 0
-          assert joined - Date.now() < 1000
-          done()
-
-      it "should store outcome", (done)->
-        split.get "79d778d8", (error, { completed, outcome })->
-          assert.equal outcome, 0
-          assert completed - Date.now() < 1000
-          done()
-
-
-    describe "with value", ->
-
-      before Helper.setup
-      before (done)->
-        vanity = new Vanity(host: "localhost:3003")
-        split  = vanity.split("foo-bar")
-        split.show("23c5b1da")
-        split.completed "23c5b1da", 5, (error, result)->
-          outcome = result
-          done()
-
-      it "should set outcome to five", ->
-        assert.equal outcome, 5
-
-      it "should store outcome", (done)->
-        split.get "23c5b1da", (error, { completed, outcome })->
-          assert.equal outcome, 5
-          assert completed - Date.now() < 1000
-          done()
+    it "should store completion", (done)->
+      split.get "79d778d8", (error, { completed })->
+        assert completed - Date.now() < 1000
+        done()
 
 
   describe "just complete", ->
-    outcome = null
 
     before Helper.setup
     before (done)->
       vanity = new Vanity(host: "localhost:3003")
       split  = vanity.split("foo-bar")
       split.completed "163b06c0", (error, result)->
-        outcome = result
         done()
 
-    it "should set outcome to zero", ->
-      assert.equal outcome, 0
-
-    it "should store alternative", (done)->
-      split.get "163b06c0", (error, { joined, alternative })->
-        assert.equal alternative, 1
-        assert joined - Date.now() < 1000
-        done()
-
-    it "should store outcome", (done)->
-      split.get "163b06c0", (error, { completed, outcome })->
-        assert.equal outcome, 0
-        assert completed - Date.now() < 1000
-        done()
-
-    it "should create test", (done)->
-      split.stats (error, stats)->
-        assert.equal stats.title, "Foo Bar"
-        assert stats.created - Date.now() , 1000
-        done()
-
-
-  describe "two completions", ->
-    outcome = null
-
-    before Helper.setup
-    before (done)->
-      vanity = new Vanity(host: "localhost:3003")
-      split  = vanity.split("foo-bar")
-      split.completed "3f8aab31", 7, (error, result)->
-        split.completed "3f8aab31", 9, (error, result)->
-          outcome = result
-          done()
-
-    it "should set outcome to first value", ->
-      assert.equal outcome, 7
-
-    it "should store first value", (done)->
-      split.get "3f8aab31", (error, { completed, outcome })->
-        assert.equal outcome, 7
-        assert completed - Date.now() < 1000
+    it "should not create participant", (done)->
+      split.get "163b06c0", (error, result)->
+        assert !error
+        assert !result
         done()
 
 
@@ -249,51 +181,6 @@ describe "split", ->
       it "should throw error", ->
         try
           split.show()
-        catch error
-          return
-        assert false, "Expected an error"
-
-    describe "alternative is NaN", ->
-
-      it "should throw error", ->
-        try
-          split.show("1cf5814a", "foo")
-        catch error
-          return
-        assert false, "Expected an error"
-
-    describe "alternative is negative", ->
-
-      it "should throw error", ->
-        try
-          split.show("1cf5814a", -1)
-        catch error
-          return
-        assert false, "Expected an error"
-
-    describe "alternative is not integer", ->
-
-      it "should throw error", ->
-        try
-          split.show("1cf5814a", 1.2)
-        catch error
-          return
-        assert false, "Expected an error"
-
-    describe "outcome is a string", ->
-
-      it "should throw error", ->
-        try
-          split.completed("1cf5814a", "foo")
-        catch error
-          return
-        assert false, "Expected an error"
-
-    describe "outcome is null", ->
-
-      it "should throw error", ->
-        try
-          split.completed("1cf5814a", null)
         catch error
           return
         assert false, "Expected an error"
@@ -329,10 +216,10 @@ describe "split", ->
         splitB  = vanityB.split("foo-bar")
 
         # Client A sets the alternative to 3 and
-        splitA.show "cb0b203e", 3, ->
+        splitA.show "cb0b203e", true, ->
           # Client B comes next ..
           # Set the alternative to 2.  This is now the at-face value.
-          splitB.show("cb0b203e", 2)
+          splitB.show("cb0b203e", false)
           faceValue = splitB.show("cb0b203e")
           # Get talking to the server
           splitB.show "cb0b203e", (error, alternative)->
@@ -341,12 +228,12 @@ describe "split", ->
             done()
 
       it "should accept initial value", ->
-        assert.equal faceValue, 2
+        assert.equal faceValue, false
 
       it "should correct to original alternative", ->
         # Let's see what's in the cache now ..
-        assert.equal splitB.show("cb0b203e"), 3
+        assert.equal splitB.show("cb0b203e"), true
 
       it "should ignore any alternative we specify", ->
-        assert.equal splitB.show("cb0b203e", 1), 3
+        assert.equal splitB.show("cb0b203e", 1), true
 

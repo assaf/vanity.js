@@ -28,7 +28,10 @@ function Vanity(options) {
 Util.inherits(Vanity, Events.EventEmitter);
 
 
+
+
 // -- Activity stream ---
+
 
 // Add activity to the activity stream.
 //
@@ -108,6 +111,8 @@ Vanity.prototype.activity = function(activity) {
 }
 
 
+
+
 // -- Split test --
 
 
@@ -117,12 +122,12 @@ Vanity.prototype.activity = function(activity) {
 // id - Test identifier (alphanumeric/underscore/hyphen)
 //
 // Returns a SplitTest object.
-Vanity.prototype.split = function(id, alternatives) {
+Vanity.prototype.split = function(id) {
   // Caching.
   this.splits = this.splits || {};
   var test = this.splits[id];
   if (!test) {
-    test = new SplitTest(this, id, alternatives);
+    test = new SplitTest(this, id);
     this.splits[id] = test;
   }
   return test;
@@ -130,14 +135,12 @@ Vanity.prototype.split = function(id, alternatives) {
 
 
 // Use vanity.split() to create this.
-function SplitTest(vanity, id, alternatives) {
+function SplitTest(vanity, id) {
   if (!id || !/^[\w\-]+$/.test(id))
     throw new Error("Split test identifier may only contain alphanumeric, underscore and hyphen");
   this.id = id;
   this.vanity = vanity;
   this.baseUrl = "http://" + vanity.host + "/v1/split/" + id;
-  // Fix me later.
-  this.alternatives = 2;
 
   // Calculating an alternative is cheap, so we don't bother caching it.  But
   // there are two cases where we do want to cache.
@@ -149,14 +152,6 @@ function SplitTest(vanity, id, alternatives) {
   // server), and we get that value back (409 Conflict).
   this._cache = {};
 
-  // Create the test on the server.
-  Request.put({ url: this.baseUrl, json: { } }, function(error, response, body) {
-    if (!error && response.statusCode >= 400 && response.statusCode != 409)
-      error = new Error("Server returned " + response.statusCode + ": " + body);
-    if (error)
-      vanity.emit("error", error)
-  })
-  
   return this;
 }
 
@@ -201,30 +196,29 @@ function SplitTest(vanity, id, alternatives) {
 //     . . .
 //   })
 SplitTest.prototype.show = function(participant, alternative, callback) {
+  // Request only sets the alternative.
+  var vanity = this.vanity,
+      cache  = this._cache,
+      cached = cache[participant],
+      params;
+
   // Yes we do get errors from the server for all these cases, but not all
   // requests wait for a response, and better fail fast.
   if (typeof(participant) != "string" && !(participant instanceof String) &&
       typeof(participant) != "number" && !(participant instanceof Number))
     throw new Error("Expecting participant to be identifier (string or number)");
 
-  var cached = this._cache[participant];
   if (arguments.length == 2 && typeof(alternative) == "function") {
     callback = alternative;
     alternative = (cached == undefined ? this.alternative(participant) : cached);
   } else if (arguments.length == 1) {
     alternative = (cached == undefined ? this.alternative(participant) : cached);
   } else {
-    if (typeof(alternative) != "number" && !(alternative instanceof Number))
-      throw new Error("Expecting alternative to be a number");
-    else if (alternative < 0)
-      throw new Error("Expecting alternative to be a positive value");
-    else if (alternative != Math.floor(alternative))
-      throw new Error("Expecting alternative to be a positive value");
-
+    alternative = (alternative ? 1 : 0);
     // If alternative was specified by caller, we want to return it next time
     // around without the network call, so we cache the result passed here.
     if (cached == undefined)
-      this._cache[participant] = alternative;
+      cache[participant] = alternative;
     else
       alternative = cached;
   }
@@ -232,26 +226,22 @@ SplitTest.prototype.show = function(participant, alternative, callback) {
   if (callback && !typeof(callback) == "function")
     throw new Error("Expecting callback to be a function");
 
-  // Request only sets the alternative.
-  var vanity = this.vanity,
-      cache  = this._cache,
-      params = { alternative: alternative };
-  Request.put({ url: this.baseUrl + "/" + participant, json: params }, function(error, response, body) {
-    // There are protocol errors (error) and server reported errors (4xx and
-    // 5xx).  409 is a special case, this just tells us the alternative has been
-    // set before to a different value.  We don't surface that at the moment.
-    if (!error && response.statusCode >= 400 && response.statusCode != 409)
+  params = { alternative: alternative };
+  Request.post({ url: this.baseUrl + "/" + participant, json: params }, function(error, response, body) {
+    var actual;
+    if (!error && response.statusCode >= 400)
       error = new Error("Server returned " + response.statusCode + ": " + body);
-    if (response && response.statusCode == 409)
-      cache[participant] = body.alternative;
-    if (callback)
-      callback(error, body && body.alternative)
-    else if (error)
+    if (error)
       vanity.emit("error", error)
-    else if (response && response.statusCode == 409)
-      vanity.emit("conflict", { participant: participant,
-                                alternative: body.alternative,
-                                conflict: alternative })
+    else {
+      actual = body.alternative;
+      if (actual != alternative) {
+        cache[participant] = actual;
+        vanity.emit("conflict", { participant: participant, alternative: actual, conflict: alternative });
+      }
+    }
+    if (callback)
+      callback(error, actual)
   });
   if (!callback)
     return alternative;
@@ -269,36 +259,24 @@ SplitTest.prototype.show = function(participant, alternative, callback) {
 // You can call this method multiple times for a given participant, only the
 // first call has any affect.  You can call this method without first calling
 // `show`, and it will also add the participant to the experiment.
-SplitTest.prototype.completed = function(participant, outcome, callback) {
+SplitTest.prototype.completed = function(participant, callback) {
+  var vanity = this.vanity;
+
   // Yes we do get errors from the server for all these cases, but not all
   // requests wait for a response, and better fail fast.
   if (typeof(participant) != "string" && !(participant instanceof String) &&
       typeof(participant) != "number" && !(participant instanceof Number))
     throw new Error("Expecting participant to be identifier (string or number)");
 
-  if (arguments.length == 2 && typeof(outcome) == "function") {
-    callback = outcome;
-    outcome = 0;
-  } else if (arguments.length == 1)
-    outcome = 0;
-  else if (typeof(outcome) != "number" && !(outcome instanceof Number))
-    throw new Error("Expecting outcome to be a number");
-  
-  var cached = this._cache[participant],
-      vanity = this.vanity,
-      params = {
-        alternative: (cached == undefined ? this.alternative(participant) : cached),
-        outcome:     outcome
-      };
-  Request.put({ url: this.baseUrl + "/" +participant, json: params }, function(error, response, body) {
+  Request.post({ url: this.baseUrl + "/" + participant + "/completed" }, function(error, response, body) {
     // There are protocol errors (error) and server reported errors (4xx and
     // 5xx).
     if (!error && response.statusCode >= 400)
       error = new Error("Server returned " + response.statusCode + ": " + body);
-    if (callback)
-      callback(error, body && body.outcome)
-    else if (error)
+    if (error)
       vanity.emit("error", error)
+    if (callback)
+      callback(error)
   })
 }
 
@@ -313,7 +291,6 @@ SplitTest.prototype.completed = function(participant, outcome, callback) {
 // participant - Participant identifier
 // alternative - Alternative number
 // joined      - When participant joined the test (Date)
-// outcome     - Outcome
 // completed   - When participant completed the test (Date)
 SplitTest.prototype.get = function(participant, callback) {
   if (!callback)
@@ -332,15 +309,25 @@ SplitTest.prototype.get = function(participant, callback) {
 }
 
 
+// Retrieve all that is known about a split test.
+//
+// Arguments are:
+// participant - Participant identifier
+// callback    - Call with error and result (null if no participant)
+//
+// Result contains:
+// title       - Human friendly title
+// created     - When this test was created (first participant)
+// alternative - The two alternatives
 SplitTest.prototype.stats = function(callback) {
   if (!callback)
     throw new Error("Expecting callback as last argument");
   Request.get({ url: this.baseUrl }, function(error, response, body) {
-    var result;
-    if (!error && response.statusCode == 200) {
-      result = JSON.parse(body);
-      if (result.created)
-        result.created = new Date(result.created);
+    if (!error && response.statusCode >= 400)
+      error = new Error("Server returned " + response.statusCode + ": " + body);
+    if (body) {
+      var result = JSON.parse(body);
+      result.created = new Date(result.created);
     }
     callback(error, result);
   })
@@ -351,8 +338,7 @@ SplitTest.prototype.stats = function(callback) {
 //
 // participant - Participant identifier
 //
-// Returns alternative number between 0 and number of alternatives in this test
-// (exclusive).
+// Returns 0 or 1.
 SplitTest.prototype.alternative = function(participant) {
   var hash = 0,
       char;
@@ -362,7 +348,7 @@ SplitTest.prototype.alternative = function(participant) {
     hash = hash & hash // Convert to 32bit integer
   }
   hash = Math.abs(hash);
-  return hash % this.alternatives;
+  return hash % 2;
 }
 
 

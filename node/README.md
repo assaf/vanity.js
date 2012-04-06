@@ -3,15 +3,19 @@
 
 #### Vanity(options)
 
-Options are:
+Create a new client and configure it to use given server and access token.
 
-* host   - Host name of vanity server (may include port, e.g.
-  "vanity.interna:443")
+The options are:
+
+* host   - Hostname of vanity server, may include port, for example,
+  "vanity.local:443"
 * token  - Access token
+
+Example:
 
 ```
 var Vanity = require("vanity"),
-    vanity = new Vanity({ host: "vanity.internal:443", token: "secret token" });
+    vanity = new Vanity({ host: "vanity.local:443", token: "secret token" });
 
 vanity.activity({ actor: "Assaf", verb: "shared", object: "http://bit.ly/GLUa9S" })
 ```
@@ -19,8 +23,12 @@ vanity.activity({ actor: "Assaf", verb: "shared", object: "http://bit.ly/GLUa9S"
 
 ## Activity Stream
 
+Use these methods to operate on the activity stream.
+
 
 #### vanity.activity(activity)
+
+Adds a new activity to the activity stream:
 
 * id       - Unique activity identifier.  Optional.
 * actor    - Activity actor is either a name (string) or an object.
@@ -68,6 +76,8 @@ vanity.activity({
 
 ## Split Testing
 
+Use these to work with split (A/B) tests.
+
 #### vanity.split(id)
 
 Returns a split test (`SplitTest`).
@@ -78,27 +88,37 @@ Arguments are:
 
 Returns a `SplitTest` object.
 
+For example:
+
+```
+var signup = vanity.split("signup-form");
+```
+
 
 #### splittest.show(participant, alternative, callback)
 
 Use this when choosing which alternative to show.
 
 If you want Vanity to pick up which alternative to show, call with one argument
-(participant identifier) and it will return an alternative number.  This request
+(participant identifier) and it will return an alternative.  This request
 updates the server but returns immediately without waiting for response.
+
+The baseline alternative (option A) has the value `0` (JS `false`), and the new
+alternative (option B) has the value `1` (JS `true`).  Just remember "new is
+true".
 
 Example:
 
 ```
 if (split.show(userId))
-  render("optionB"); // Alternative 1 that we're testing
+  render("optionB"); // The new alternative we're testing
 else
-  render("optionA"); // Alternative 0, our base line
+  render("optionA"); // Our baseline
 ```
 
 You can also call with participant and callback.  This will contact the server,
-wait for response, and return the actual alternative number.  This is the safest
-way to get the alternative.
+wait for response, and return the actual alternative.  This is the safest way to
+get the alternative.
 
 Example:
 
@@ -112,26 +132,26 @@ split.show(userId, function(error, alternative) {
 ```
 
 You can also force a particular alternative by calling with participant,
-alternative number and optional callback.  Note that an alternative can be set
-only once.  With a callback, you'll get the alternative stored on the server,
-which may differ from the one passed as argument.
+alternative and optional callback.  Note that an alternative can be set only
+once.  With a callback, you'll get the alternative stored on the server, which
+may differ from the one passed as argument.
 
 Example:
 
 ```
-// These users always sees the second option
+// These users always sees option B
 if (user.beta)
-  split.show(userId, 1);
+  split.show(userId, true);
 split.show(userId, function(error, alternative) {
   . . .
 })
 ```
 
 
-#### splittest.completed(participant, outcome, callback)
+#### splittest.completed(participant, callback)
 
 
-Use this to record conversion (goal completion).
+Use this to record when a participant completed the test (converted).
 
 Example:
 
@@ -162,17 +182,6 @@ Result contains:
 * participant - Participant identifier
 * alternative - Alternative number
 * joined      - When participant joined the test (Date)
-* outcome     - Outcome
 * completed   - When participant completed the test (Date)
-
-
-#### splittest.stats(callback)
-
-Retrieve all that is known about this split test.
-
-Result passed to callback with:
-
-* created     - Timestamp when test was created
-* title       - Human readable title
 
 
