@@ -15,40 +15,30 @@ redis = require("../config/redis")
 class SplitTest
 
 
-  # Storage
+  # -- Storage --
   #
   # vanity.split.:test hash records general information about the test: its
-  # title and creation timestamp.
+  # title and created timestamp.
   #
-  # vanity.split.:test.alternatives list names all the alternatives by their
-  # numeric order.
+  # vanity.split.:test.:alt is a hash with information about the alternative:
+  # its title, number of participants and number of completions.
   #
-  # vanity.split.:test.weights list specifies each alternative's weight.
+  # vanity.split.:test.participants maps each participant into an alternative (0
+  # or 1). We use this to note a participant has joined the test, so we don't
+  # add the same participant twice, and to note what alternative was assigned to
+  # them.
   #
-  # vanity.split.:test.participants hash maps participant identifier to
-  # alternative number.  We use this to note that a participant joined the test
-  # and what alternative was shown to them.
+  # vanity.split.:test.joined sorted set records when each participant joined
+  # the test. The score is the time at which the participant was recorded. We
+  # use this to attribute conversion to particular hour of a day.
   #
-  # vanity.split.:test.joined.:alt sorted set records when each participant
-  # joined that test, using the timestamp as the score.  That allows us to
-  # retrieve all participants for a given time range.  Having a set for each
-  # alternative also makes it cheap to count participants for each alternative.
+  # vanity.split.:test.completed set contains all participants that completed
+  # the test. We use this to avoid counting the same participant twice (i.e.
+  # only allow single conversion).
   #
-  # If failure happens, it is possible that a participant will be recorded in
-  # the hash but not the sorted set.  This is rare enough to not skew any
-  # numbers, but statistics should always be presented from a consisted set
-  # (i.e. the joined sorted set).
-  #
-  # vanity.split.:test.outcomes hash maps participant identifier to outcome
-  # value.  We use it to nore that a participant completed the test and with
-  # what outcome.
-  #
-  # vanity.split.:test.completed.:alt sorted set records when each participant
-  # completed the test.  As with joined sorted set, it allows us to perform
-  # quick counts for each alternative.
-  #
-  # If failure happens, it is possible that a participant outcome will be
-  # recorded in the hash but not the sorted set.
+  # vanity.split.:test.converted.:alt hash records how many participants that
+  # joined in a given hour also completed the test.  The key is an hour
+  # (RFC3339) and the value is the count.
  
 
   # Create a new split test with the given identifier.  Throws exception is the
@@ -59,17 +49,26 @@ class SplitTest
     @_base_key = "#{redis.prefix}.split.#{@id}"
 
 
+  # Update test to note when it was first used.
+  created: (callback)->
+    multi = redis.multi()
+    # This will set the created timestamp the first time we call created.
+    multi.hsetnx @_base_key, "created", Date.create().toISOString()
+    # Make sure test always has a title
+    multi.hsetnx @_base_key, "title", @id.titleize()
+    multi.exec callback
+
+
   # Adds a participant.
   #
-  # Arguments are:
   # participant - Participant identifier
-  # alternative - Alternative number
+  # alternative - Alternative (A is false, B is true)
   # callback    - Receive error or response
   #
   # Throws an exception if participant identifier or alternative number are
   # invalid.
   #
-  # Callback recieves error and result object with:
+  # Callback result has:
   # participant - Participant identifier
   # alternative - Alternative number
   #
@@ -77,89 +76,93 @@ class SplitTest
   # passed to the callback is that first value.
   addParticipant: (participant, alternative, callback)->
     participant = participant.toString() unless Object.isString(participant)
+    alternative = alternative && 1 || 0
 
-    unless Object.isNumber(alternative)
-      throw new Error("Missing alternative number")
-    if alternative < 0
-      throw new Error("Alternative cannot be a negative number")
-    unless alternative == Math.floor(alternative)
-      throw new Error("Alternative must be an integer")
-
-    # First check if we already know which alternative was presented.
-    redis.hget "#{@_base_key}.participants", participant, (error, known)=>
+    # Make sure we take note of the experiment.
+    @created (error)=>
       return callback(error) if error
-      if known != null
-        # Respond with identifier and alternative
-        callback error,
-          participant:  participant
-          alternative:  parseInt(known)
-        return
 
-      # Set the alternative if not already set (avoid race condition).
-      redis.hsetnx "#{@_base_key}.participants", participant, alternative, (error, changed)=>
+      # First check if we already know which alternative was presented.
+      redis.hget "#{@_base_key}.participants", participant, (error, known)=>
         return callback(error) if error
-        unless changed # Someone beat us to it
-          @getParticipant participant, callback
-          return
-
-        # Keep record of when participant joined
-        redis.zadd "#{@_base_key}.joined.#{alternative}", Date.now(), participant, (error)->
+        if known != null
+          # We've seen this participant before, nothing more to do.
           callback error,
             participant:  participant
-            alternative:  alternative
-    return
-
-  
-  # Sets the outcome, but also adds participant if not already in this split
-  # test.
-  #
-  # Arguments are:
-  # participant - Participant identifier
-  # alternative - Alternative number
-  # outcome     - Outcome
-  # callback    - Receive error or response
-  #
-  # Throws an exception if participant identifier, alternative number or outcome
-  # are invalid.
-  #
-  # Callback recieves error and result object with:
-  # participant - Participant identifier
-  # alternative - Alternative number
-  # outcome     - Outcome
-  #
-  # Note that only the first alternative number and outcomes are stored, and the
-  # values passed to the callback are those first stored.
-  setOutcome: (participant, alternative, outcome, callback)->
-    unless outcome == null || outcome == undefined || Object.isNumber(outcome)
-      throw new Error("Outcome must be numeric value")
-
-    @addParticipant participant, alternative, (error, result)=>
-      return callback(error) if error
-      if outcome == null || outcome == undefined
-        callback null, result
-        return
-
-      redis.hsetnx "#{@_base_key}.outcomes", participant, outcome, (error, changed)=>
-        return callback(error) if error
-        unless changed # Someone beat us to it
-          @getParticipant participant, callback
+            alternative:  parseInt(known)
           return
 
-        result.outcome = outcome
-        redis.zadd "#{@_base_key}.completed.#{result.alternative}", Date.now(), participant, (error)->
-          callback error, result
+        # First we assign the participant an alternative, and we do it using
+        # HSETNX to avoid a race condition.
+        redis.hsetnx "#{@_base_key}.participants", participant, alternative, (error, changed)=>
+          return callback(error) if error
+          unless changed # Someone beat us to it
+            @getParticipant participant, callback
+            return
+
+          # Update alternative stats, we've got one more participant to account
+          # for.  Record when participant joined, so later on we can count a
+          # conversion against that.
+          multi = redis.multi()
+          multi.hincrby "#{@_base_key}.#{alternative}", "participants", 1
+          multi.zadd "#{@_base_key}.joined", Date.now(), participant
+          multi.exec (error)->
+            callback error,
+              participant:  participant
+              alternative:  alternative
+    return
+
+ 
+  # Indicates participant completed the test.
+  #
+  # participant - Participant identifier
+  # callback    - Receive error or null
+  completed: (participant, callback)->
+    participant = participant.toString() unless Object.isString(participant)
+
+    redis.sadd "#{@_base_key}.completed", participant, (error, added)=>
+      return callback(error) if error
+      unless added
+        # This participant already recorded as completed, nothing more to do.
+        callback()
+        return
+
+      # First check if we already know which alternative was presented.
+      redis.hget "#{@_base_key}.participants", participant, (error, alternative)=>
+        return callback(error) if error
+        if alternative == null
+          # Never seen this participant, so ignore
+          callback()
+          return
+
+        # Next we need to know when participant joined, so we can record a
+        # conversion for that time period.
+        redis.zscore "#{@_base_key}.joined", participant, (error, score)=>
+          return callback(error) if error
+          if score == null
+            callback()
+            return
+          joined = new Date(parseInt(score))
+
+          # Update alternative stats, we've got one more completion to account
+          # for.  Also, increment one conversion based on when participant was
+          # joined the test.
+          multi = redis.multi()
+          multi.hincrby "#{@_base_key}.#{alternative}", "completed", 1
+          hour = joined.set(minute: 0, true).toISOString()
+          multi.hincrby "#{@_base_key}.converted.#{alternative}", hour, 1
+          multi.exec callback
+    return
 
 
   # Retrieves information about a participant.
   #
-  # Arguments are:
   # participant - Participant identifier
   #
   # Callback recieves error and result object with:
   # participant - Participant identifier
   # alternative - Alternative number
   # joined      - When participant joined the test (Date)
-  # outcome     - Outcome
   # completed   - When participant completed the test (Date)
   #
   # If the participant never joined this split test, the callback receives null.
@@ -172,27 +175,16 @@ class SplitTest
         return
 
       # Get when participant joined this test
-      redis.zscore "#{@_base_key}.joined.#{alternative}", participant, (error, score)=>
+      redis.zscore "#{@_base_key}.joined", participant, (error, score)=>
         return callback(error) if error
-        # We have enough result for participant with no outcome
-        result =
-          participant:  participant
-          alternative:  parseInt(alternative)
-          joined:       new Date(parseInt(score))
-
-        redis.hget "#{@_base_key}.outcomes", participant, (error, outcome)=>
+        # Get when participant compeleted this test
+        redis.sismember "#{@_base_key}.completed", participant, (error, completed)->
           return callback(error) if error
-          if outcome == null
-            # Participant did not converat
-            callback(null, result)
-            return
-
-          result.outcome = outcome
-          # Get when participant compeleted this test
-          redis.zscore "#{@_base_key}.completed.#{alternative}", participant, (error, score)->
-            return callback(error) if error
-            result.completed = new Date(parseInt(score))
-            callback null, result
+          callback null,
+            participant:  participant
+            alternative:  alternative
+            joined:       new Date(parseInt(score))
+            completed:    !!completed
 
 
   # Use this to load a test into memory.  Passes SplitTest object to callback,
@@ -201,7 +193,6 @@ class SplitTest
   # The SplitTest properties include:
   # title         - Humand readable title
   # created       - Date/time when test was created
-  # alternatives  - Lists all the title and weight of each alternative
   @load: (id, callback)->
     try
       test = new SplitTest(id)
@@ -246,127 +237,45 @@ class SplitTest
   # completed     - How many of these participants completed the test
   @data: (id, callback)->
     base_key = "#{redis.prefix}.split.#{id}"
-    Async.parallel [
+    Async.waterfall [
       (done)->
-        redis.lrange "#{base_key}.alternatives", 0, -1, done
-    , (done)->
-        redis.lrange "#{base_key}.weights", 0, -1, done
-    ], (error, [titles, weights])=>
-      return callback(error) if error
+        # First we need to determine which participant is assigned what
+        # alternative. This gives us a map from participant ID to alternative
+        # number.
+        redis.hgetall "#{base_key}.participants", done
 
-      alternatives = titles.map((title, i)-> { title: title, weight: weights[i] })
-      indices = alternatives.map((d, i)-> i)
-      Async.waterfall [
-        (done)->
-          # Load all the participants that ever completed the test and key on
-          # them.
-          redis.hkeys "#{base_key}.outcomes", (error, participants)->
-            completed = participants.reduce((hash, id)->
-              hash[id] = true
-              return hash
-            , {})
-            done(null, completed)
-      , (completed, doneJoined)->
-          Async.map indices, (index, doneMap)->
-            redis.zrange "#{base_key}.joined.#{index}", 0, -1, "withscores", (error, joined)->
-              return callback(error) if error
-              # Convert id, ts, id, ts, id, ts sequence into a object with time
-              # (rounded to hour) as the key and count of participants as value
-              data = {}
-              for [id, time] in joined.inGroupsOf(2)
-                time -= time % 3600000
-                obj = data[time] ||= { time: Date.create(time) }
-                # Count one participant, and count once if completed
-                obj.participants = (obj.participants || 0) + 1
-                obj.completed ||= 0
-                if completed[id]
-                  obj.completed += 1
-              doneMap(null, data)
-          , doneJoined
-      , (datum, done)->
-          sorted = (Object.values(data).sort("time") for data in datum)
-          done null, sorted
-      ], (error, datum)->
-        return callback(error) if error
-        for i, data of datum
-          alternatives[i].data = data
-        callback null, alternatives
+    , (participants, doneJoined)->
+        # Next we need to determine how many participants joined each
+        # alternative in any given hour.
+        hourly = [{}, {}]
+        redis.zrange "#{base_key}.joined", 0, -1, "withscores", (error, joined)->
+          return doneJoined(error) if error
+          for [id, time] in joined.inGroupsOf(2)
+            time -= time % 3600000 # round down to nearest hour
+            set = hourly[participants[id]]
+            hour = set[time] ||= { time: Date.create(time).toISOString() }
+            hour.participants = (hour.participants || 0) + 1
+          doneJoined(null, hourly)
+
+    , (hourly, doneConverted)->
+        # Load everything we know about conversion for each given time slot, and
+        # update the data record.
+        Async.map [0, 1], (alternative, doneEach)->
+          set = hourly[alternative]
+          redis.hgetall "#{base_key}.converted.#{alternative}", (error, converted)->
+            return doneEach(error) if error
+            for time, entry of set
+              converted = converted[entry.time] || 0
+              entry.converted = converted
+            doneEach(null, set)
+        , doneConverted
+
+    , (hourly, done)->
+        # Now let's turn each hourly map into a sorted array.
+        sorted = (Object.values(set).sort("time") for set in hourly)
+        done(null, sorted)
+
+    ], callback
 
 
-  update: (params, callback)->
-    update = {}
-
-    if params.title
-      unless Object.isString(params.title)
-        throw new Error("Title must be a string")
-      update.title = params.title
-
-    if params.alternatives
-      if Object.isNumber(params.alternatives)
-        # Create specified number of alternatives, evenly distributed
-        count = Math.floor(params.alternatives)
-        unless count > 1
-          throw new Error("Split test must have 2 or more alternatives")
-        if count > 10
-          throw new Error("Split test with 10 alternatives makes no sense")
-        alternatives = (1).upto(count).map((i)-> { title: (i + 64).chr() })
-      else if Array.isArray(params.alternatives)
-        # Map supplied array of alternatives (titles or titles + weights)
-        alternatives = []
-        for alt in params.alternatives
-          if Object.isString(alt)
-            alternatives.push { title: alt, weight: null }
-          else if Array.isArray(alt)
-            unless String.isString(alt[0])
-              throw new Error("Alternative must be [title, weight], title must be a string")
-            weight = parseInt(alt[1])
-            unless weight >= 0 && weight <= 1
-              throw new Error("Alternative must be [title, weight], weight must be value between 0 and 1")
-            alternatives.push { title: alt[0], weight: weight }
-        if alternatives.length > 10
-          throw new Error("Split test with 10 alternatives makes no sense")
-    else
-      # Default to two alternatives, A and B.
-      alternatives = [ { title: "A" }, { title: "B" } ]
-
-    # Step one, determine how much weight was specified
-    combined = 0
-    unspecified = 0
-    for alt in alternatives
-      if alt.weight == undefined || alt.weight == null
-        unspecified += 1
-      else
-        if alt.weight < 0 || alt.weight > 1
-          throw new Error("Alternative weight must be value between 0 and 1 (inclusive)")
-        combined += alt.weight
-    if combined > 1
-      throw new Error("The combined weight of all alternatives can't surpass 1")
-    if unspecified > 0
-      fraction = (1 - combined) / unspecified
-      for alt in alternatives
-        if alt.weight == undefined || alt.weight == null
-          alt.weight = fraction
-          combined += fraction
-    if combined < 1
-      alternatives[0].weight += 1 - combined
-
-
-    multi = redis.multi()
-    multi.hsetnx @_base_key, "created", Date.create().toISOString()
-    # Make sure test always has a title
-    multi.hsetnx @_base_key, "title", @id.titleize()
-    unless Object.isEmpty(update)
-      multi.hmset @_base_key, update
-    multi.del "#{@_base_key}.alternatives"
-    multi.del "#{@_base_key}.weights"
-    for i, alt of alternatives
-      multi.rpush "#{@_base_key}.alternatives", alt.title
-      multi.rpush "#{@_base_key}.weights", alt.weight
-    multi.exec (error)=>
-      if error
-        callback(error)
-      else
-        @load callback
-
- 
 module.exports = SplitTest

@@ -10,11 +10,6 @@ SplitTest = require("../models/split_test")
 # id            - Test identifier
 # title         - Human readable title
 # created       - Timestamp when test was created
-# alternatives  - Information about each alternative
-#
-# Each alternative includes the following properties:
-# title         - Human readable title
-# weight        - Value between 0 and 1
 server.get "/v1/split/:test", (req, res, next)->
   SplitTest.load req.params.test, (error, test)->
     if test
@@ -27,78 +22,46 @@ server.get "/v1/split/:test", (req, res, next)->
       next(error)
 
 
-# Creates or updates a split test.
+# Send this request to indicate participant joined the test.
 #
-# Request JSON document supports the following properties:
-# title         - Human readable title
-# alternatives  - Information about each alternative
+# The request must specify a single parameter (in any supported media type):
+# alternative   - The alternative chosen for this participant, either
+#                 0 (A) or 1 (B)
 #
-# For each alternative you can specify:
-# title         - Human readable title
-# weight        - Value between 0 and 1
-#
-# For response JSON document, see GET method.
-server.put "/v1/split/:test", (req, res, next)->
+# Returns status code 200 and a JSON document with one property:
+# alternative   - The alternative decided for this participant
+server.post "/v1/split/:test/:participant", (req, res, next)->
+  alternative = parseInt(req.body.alternative, 10)
   try
-    { title, alternatives } = req.body
     test = new SplitTest(req.params.test)
-    test.update req.body, (error)->
+    test.addParticipant req.params.participant, alternative, (error, result)->
       if error
         next(error)
       else
-        res.send
-          id:           test.id
-          title:        test.title
-          created:      test.created
-          alternatives: test.alternatives
+        res.send result
   catch error
     res.send error.message, 400
 
 
-# Add participant or record outcome.
+# Send this request to indicate participant completed the test.
 #
-# Path includes test and participant identifier.
-#
-# Request is a JSON document with the following properties:
-# alternative - Alternative number (0 ... n)
-# outcome     - A number
-#
-# With only alternative, adds participant to split test.
-#
-# With alternative and outcome, records conversion with the specified value.
-#
-# If successful, returns the status code 200.  If participant already added with
-# a different alternative, returns the status code 409.  For invalid outputs,
-# returns status code 400.
-#
-# In all cases, returns a JSON document with the following properties:
-# alternative - Alternative number
-# outcome     - Recorded outcome
-server.put "/v1/split/:test/:participant", (req, res, next)->
-  { alternative, outcome } = req.body
+# Returns status code 204 (No content).
+server.post "/v1/split/:test/:participant/completed", (req, res, next)->
   try
     test = new SplitTest(req.params.test)
-    test.setOutcome req.params.participant, alternative, outcome, (error, result)->
-      if result
-        if result.alternative == alternative
-          res.send result, 200
-        else
-          res.send result, 409
-      else
+    test.completed req.params.participant, (error)->
+      if error
         next(error)
+      else
+        res.send 202
   catch error
-    res.send error.message, 400
+    res.send error.message, 404
 
 
 # Returns the raw data part of this split test.
 #
-# Response JSON document is an array with one element for each alternative,
-# with the properties:
-# title         - Human readable title
-# weight        - Value between 0 and 1
-# data          - Array of historical values
-#
-# Each entry of the data array has the properties:
+# Response JSON document is an array with one element for each alternative.
+# Each element is itself an array with the properties:
 # time          - Date/time at 1 hour resoultion (RFC3339)
 # participants  - Number of participants joined during that hour
 # completed     - How many of these participants completed the test

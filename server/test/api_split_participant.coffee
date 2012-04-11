@@ -20,7 +20,7 @@ describe "API split test participants", ->
 
     before Helper.setup
     before (done)->
-      request.put base_url + "8fea081c", json: { alternative: 2 }, (_, response)->
+      request.post base_url + "8fea081c", json: { alternative: 1 }, (_, response)->
         { statusCode, body } = response
         done()
 
@@ -31,14 +31,15 @@ describe "API split test participants", ->
       assert.equal body.participant, "8fea081c"
 
     it "should return alternative number", ->
-      assert.equal body.alternative, 2
+      assert.equal body.alternative, 1
 
     it "should store participant", (done)->
       request.get base_url + "8fea081c", (_, { body })->
         result = JSON.parse(body)
         assert.equal result.participant, "8fea081c"
-        assert.equal result.alternative, 2
+        assert.equal result.alternative, 1
         assert Date.create(result.joined) - Date.now() < 1000
+        assert !result.completed
         done()
 
 
@@ -49,87 +50,63 @@ describe "API split test participants", ->
 
     before Helper.setup
     before (done)->
-      request.put base_url + "ad9fe6597", json: { alternative: 2 }, done
+      request.post base_url + "ad9fe6597", json: { alternative: 1 }, done
     before (done)->
-      request.put base_url + "ad9fe6597", json: { alternative: 3 }, (_, response)->
+      request.post base_url + "ad9fe6597", json: { alternative: 0 }, (_, response)->
         { statusCode, body } = response
         done()
 
-    it "should return 409", ->
-      assert.equal statusCode, 409
+    it "should return 200", ->
+      assert.equal statusCode, 200
 
     it "should return participant identifier", ->
       assert.equal body.participant, "ad9fe6597"
 
     it "should return original alternative", ->
-      assert.equal body.alternative, 2
+      assert.equal body.alternative, 1
 
 
   # -- Adding participant and settings outcome --
   
-  describe "add participant and set outcome", ->
+  describe "add participant and complete", ->
     statusCode = body = null
 
     before Helper.setup
     before (done)->
-      request.put base_url + "b6f34cba", json: { alternative: 3 }, done
+      request.post base_url + "b6f34cba", json: { alternative: 1 }, done
     before (done)->
-      request.put base_url + "b6f34cba", json: { alternative: 3, outcome: 5.6 }, (_, response)->
+      request.post base_url + "b6f34cba/completed", (_, response)->
         { statusCode, body } = response
         done()
 
     it "should return 200", ->
-      assert.equal statusCode, 200
+      assert.equal statusCode, 202
 
-    it "should return participant identifier", ->
-      assert.equal body.participant, "b6f34cba"
-
-    it "should return alternative number", ->
-      assert.equal body.alternative, 3
-
-    it "should return outcome value", ->
-      assert.equal body.outcome, 5.6
-
-    it "should store participant", (done)->
+    it "should update participant", (done)->
       request.get base_url + "b6f34cba", (_, { body })->
         result = JSON.parse(body)
         assert.equal result.participant, "b6f34cba"
-        assert.equal result.alternative, 3
+        assert.equal result.alternative, 1
         assert Date.create(result.joined) - Date.now() < 1000
-        assert.equal result.outcome, 5.6
         assert Date.create(result.completed) - Date.now() < 1000
         done()
 
 
-  describe "set outcome without adding participant", ->
+  describe "complete without adding participant", ->
     statusCode = body = null
 
     before Helper.setup
     before (done)->
-      request.put base_url + "d5df3958", json: { alternative: 1, outcome: 78 }, (_, response)->
-        { statusCode, body } = response
+      request.post base_url + "d5df3958/completed", (_, response)->
+        { statusCode } = response
         done()
 
-    it "should return 200", ->
-      assert.equal statusCode, 200
+    it "should return 202", ->
+      assert.equal statusCode, 202
 
-    it "should return participant identifier", ->
-      assert.equal body.participant, "d5df3958"
-
-    it "should return alternative number", ->
-      assert.equal body.alternative, 1
-
-    it "should return outcome value", ->
-      assert.equal body.outcome, 78
-
-    it "should store participant", (done)->
-      request.get base_url + "d5df3958", (_, { body })->
-        result = JSON.parse(body)
-        assert.equal result.participant, "d5df3958"
-        assert.equal result.alternative, 1
-        assert Date.create(result.joined) - Date.now() < 1000
-        assert.equal result.outcome, 78
-        assert Date.create(result.completed) - Date.now() < 1000
+    it "should not store participant", (done)->
+      request.get base_url + "d5df3958", (_, { statusCode })->
+        assert.equal statusCode, 404
         done()
 
 
@@ -139,43 +116,54 @@ describe "API split test participants", ->
     statusCode = body = null
 
     before (done)->
-      request.put base_url + "fbb28a111", json: { alternative: "" }, (_, response)->
+      request.post base_url + "fbb28a111", json: { alternative: "" }, (_, response)->
         { statusCode, body } = response
         done()
 
-    it "should return 400", ->
-      assert.equal statusCode, 400
+    it "should return 200", ->
+      assert.equal statusCode, 200
 
-    it "should return error", ->
-      assert.equal body, "Missing alternative number"
+    it "should assume false", (done)->
+      request.get base_url + "fbb28a111", (_, { body })->
+        result = JSON.parse(body)
+        assert.equal result.alternative, 0
+        done()
+
 
   describe "alternative is negative", ->
     statusCode = body = null
 
     before (done)->
-      request.put base_url + "b715d1f4e", json: { alternative: -5 }, (_, response)->
+      request.post base_url + "b715d1f4e", json: { alternative: -5 }, (_, response)->
         { statusCode, body } = response
         done()
 
-    it "should return 400", ->
-      assert.equal statusCode, 400
+    it "should return 200", ->
+      assert.equal statusCode, 200
 
-    it "should return error", ->
-      assert.equal body, "Alternative cannot be a negative number"
+    it "should assume true", (done)->
+      request.get base_url + "b715d1f4e", (_, { body })->
+        result = JSON.parse(body)
+        assert.equal result.alternative, 1
+        done()
+        
 
   describe "alternative is decimal", ->
     statusCode = body = null
 
     before (done)->
-      request.put base_url + "76c18f432", json: { alternative: 1.02 }, (_, response)->
+      request.post base_url + "76c18f432", json: { alternative: 1.02 }, (_, response)->
         { statusCode, body } = response
         done()
 
-    it "should return 400", ->
-      assert.equal statusCode, 400
+    it "should return 200", ->
+      assert.equal statusCode, 200
 
-    it "should return error", ->
-      assert.equal body, "Alternative must be an integer"
+    it "should assume true", (done)->
+      request.get base_url + "76c18f432", (_, { body })->
+        result = JSON.parse(body)
+        assert.equal result.alternative, 1
+        done()
 
 
   describe "invlid test identifier", ->
@@ -183,7 +171,7 @@ describe "API split test participants", ->
 
     before (done)->
       url = "http://localhost:3003/v1/split/foo+bar/76c18f432"
-      request.put url, json: { alternative: 1 }, (_, response)->
+      request.post url, json: { alternative: 1 }, (_, response)->
         { statusCode, body } = response
         done()
 
@@ -192,18 +180,3 @@ describe "API split test participants", ->
 
     it "should return error", ->
       assert.equal body, "Split test identifier may only contain alphanumeric, underscore and hyphen"
-
-
-  describe "outcome is NaN", ->
-    statusCode = body = null
-
-    before (done)->
-      request.put base_url + "43c1c137", json: { alternative: 1, outcome: "NaN" }, (_, response)->
-        { statusCode, body } = response
-        done()
-
-    it "should return 400", ->
-      assert.equal statusCode, 400
-
-    it "should return error", ->
-      assert.equal body, "Outcome must be numeric value"

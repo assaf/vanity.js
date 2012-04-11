@@ -41,7 +41,7 @@ assert.equal cumul, 100, "Bad distribution"
 hourly = hourly_dist.done()
 
 
-fakeActivity = ->
+fakeActivity = (host, count, callback)->
 # Delete and re-create index
   queue = []
   console.log "Creating index ..."
@@ -86,9 +86,10 @@ fakeActivity = ->
     Async.series queue,
       (error)->
         if error
-          console.error error
+          callback(error)
         else
           console.log "Published #{COUNT} activities"
+          callback()
 
 
 
@@ -105,19 +106,15 @@ fakeSplitTest = (count, callback)->
           redis.del keys..., done
 
   , (_, done)->
-      console.log "Creating a fake split test foo-bar ..."
-      Timekeeper.travel Date.create().addDays(-count / 150)
-      split.update title: "Foo vs Bar", alternatives: 2, done
-
-  , (done)->
       # Make unique participant identifier
       newId = ->
         Crypto.createHash("md5").update(Math.random().toString()).digest("hex")
       # Load up on identifiers
       ids = (newId() for i in [0...count])
-      done null, ids
+      done(null, ids)
 
   , (ids, done)->
+      Timekeeper.travel Date.create().addDays(-count / 150)
       # Create participants from these IDs.  Do that serially, since we're playing
       # with current time.
       Async.forEachSeries ids, (id, each)->
@@ -125,7 +122,7 @@ fakeSplitTest = (count, callback)->
         alternative = Math.floor(Math.random() * 2)
         split.addParticipant id, alternative, ->
           if Math.random() < 0.05
-            split.setOutcome id, alternative, 0, each
+            split.completed id, each
           else
             each()
       , done
@@ -141,7 +138,6 @@ fakeSplitTest = (count, callback)->
 Async.series [
   (done)->
     fakeActivity HOST, COUNT, done
-    done()
 , (done)->
     fakeSplitTest COUNT, done
 ], (error)->

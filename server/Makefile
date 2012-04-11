@@ -17,13 +17,10 @@ setup :
 	npm install
 
 
-# Deletes ElasticSearch index
-es-delete :
-	#coffee lib/fake_it
+# Create fake data for testing
+fake :
+	coffee lib/fake_it 10000
 
-# Populates ElasticSearch with fake data
-es-fake :
-	coffee lib/fake_it 1000
 
 # UI for ElasticSearch
 es-view :
@@ -34,6 +31,3 @@ es-view :
   fi
 	open http://localhost:9200/_plugin/head/
 
-# Publish a fake activity using the API
-test-publish :
-	coffee lib/publish 1 localhost:3000

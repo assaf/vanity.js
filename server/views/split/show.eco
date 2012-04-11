@@ -8,43 +8,44 @@ $(function() {
   var DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
   var testId = document.location.pathname.split("/").last();
-  $.getJSON("/v1/split/" + testId + "/data", function(alternatives) {
+  $.getJSON("/v1/split/" + testId + "/data", function(data) {
     var divs = d3.select("#alternatives")
-          .selectAll("alternative").data(alternatives)
+          .selectAll("alternative").data(data)
           .enter().append("div");
     divs
       .attr("class", "alternative")
-      .attr("id", function(d, i) { return "alternative-" + i });
-    divs.each(renderAlternative);
+      .attr("id", function(d, i) { return "alternative-" + i })
+      .each(renderAlternative);
   });
 
 
-  function renderAlternative(alternative) {
+  function renderAlternative(data) {
     // The alternative container element
     var el = d3.select(this);
     // The reduce functions.  These are called for each data point, and we need
     // to tally the participants and completed so we can calculate conversion.
     function reduceAdd(last, d) {
       last.participants += d.participants;
-      last.completed += d.completed;
-      last.converted = last.completed / last.participants;
+      last.converted += d.converted;
+      last.conversion = last.converted / last.participants;
+      console.log(d, last)
       return last;
     }
     function reduceRemove(last, d) {
       last.participants -= d.participants;
-      last.completed -= d.completed;
-      last.converted = last.completed / last.participants;
+      last.converted -= d.converted;
+      last.conversion = last.converted / last.participants;
       return last;
     }
     function reduceInitial() {
-      return { participants: 0, completed: 0 }
+      return { participants: 0, converted: 0 }
     }
     // The value function: we're interested in converted.
     function value(d) {
-      return d.converted || 0;
+      return d.conversion || 0;
     }
 
-    var xfilter = crossfilter(alternative.data),
+    var xfilter = crossfilter(data),
         day   = xfilter.dimension(function(d) { return Date.create(d.time).getDay(); }),
         days  = day.group().reduce(reduceAdd, reduceRemove, reduceInitial).order(value),
         hour  = xfilter.dimension(function(d) { return Date.create(d.time).getHours(); }),
@@ -53,7 +54,7 @@ $(function() {
 
     // Fill it up with content: header, big value (conversion), small value
     // (participants), and chart.
-    el.append("h1").text(alternative.title);
+    //el.append("h1").text(title);
     el.append("big");
     el.append("small");
     el.append("div").attr("class", "chart days")
