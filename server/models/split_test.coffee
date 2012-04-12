@@ -61,7 +61,7 @@ SplitTest =
   #
   # Note that only the first alternative number is stored, and the alternative
   # passed to the callback is that first value.
-  addParticipant: (test_id, participant, alternative, callback)->
+  participated: (test_id, participant, alternative, callback)->
     participant = participant.toString() unless Object.isString(participant)
     alternative = alternative && 1 || 0
     base_key = SplitTest.baseKey(test_id)
@@ -175,7 +175,8 @@ SplitTest =
           multi.hincrby "#{base_key}.#{alternative}", "completed", 1
           hour = joined.set(minute: 0, true).toISOString()
           multi.hincrby "#{base_key}.converted.#{alternative}", hour, 1
-          multi.exec callback
+          multi.exec (error)->
+            callback(error)
     return
 
 
@@ -281,9 +282,8 @@ SplitTest =
           set = hourly[alternative]
           redis.hgetall "#{base_key}.converted.#{alternative}", (error, converted)->
             return doneEach(error) if error
-            for time, entry of set
-              converted = converted[entry.time] || 0
-              entry.converted = converted
+            for _, entry of set
+              entry.converted = parseInt(converted[entry.time]) || 0
             doneEach(null, set)
         , doneConverted
 

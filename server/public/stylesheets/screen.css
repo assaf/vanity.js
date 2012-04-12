@@ -223,7 +223,6 @@ ol.activities + aside {
 .split-test .alternative {
   width: 460px;
   float: left;
-  -webkit-box-shadow: 4px 4px 16px #ccc;
 }
 .split-test .alternative:nth-child(odd) {
   margin-right: 20px;

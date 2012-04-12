@@ -112,14 +112,14 @@ fakeSplitTest = (count, callback)->
       done(null, ids)
 
   , (ids, done)->
-      Timekeeper.travel Date.create().addDays(-count / 150)
+      Timekeeper.travel Date.create().addDays(-count / 144)
       # Create participants from these IDs.  Do that serially, since we're playing
       # with current time.
       Async.forEachSeries ids, (id, each)->
-        Timekeeper.travel Date.create().addMinutes(576) # there are 150 of these in a day
+        Timekeeper.travel Date.create().addMinutes(10) # there are 144 of these in a day
         alternative = Math.floor(Math.random() * 2)
-        SplitTest.addParticipant "foo-bar", id, alternative, ->
-          if Math.random() < 0.05
+        SplitTest.participated "foo-bar", id, alternative, ->
+          if Math.random() < 0.10
             SplitTest.completed "foo-bar", id, each
           else
             each()

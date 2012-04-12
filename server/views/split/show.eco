@@ -58,11 +58,11 @@ $(function() {
 
     // Now let's do some charts.
     var charts = [
-      barChart() // Day
+      barChart(0) // Day
         .dimension(day).group(days).value(value)
         .x(d3.scale.linear().domain([0, 7]).rangeRound([0, 10 * 8]))
         .reset(resetChart),
-      barChart() // Hour
+      barChart(1) // Hour
         .dimension(hour).group(hours).value(value)
         .x(d3.scale.linear().domain([0, 24]).rangeRound([0, 10 * 24]))
         .reset(resetChart)
@@ -71,42 +71,42 @@ $(function() {
     // Renders the specified chart or list.
     function render(method) {
       var value = all.value(),
-          converted = value.converted;
+          conversion = value.conversion;
       d3.select(this).call(method);
-      el.select("small").text(value.participants);
-      if (isNaN(converted))
+      el.select("small").text(value.participants.format(0));
+      if (isNaN(conversion))
         el.select("big").text("N/A");
       else
-        el.select("big").text((converted * 100).format(2) + "%");
+        el.select("big").text((conversion * 100).format(2) + "%");
     }
+
+    var chart = el.selectAll(".chart").data(charts);
 
     // Whenever the brush moves, re-rendering everything.
     function renderAll() {
       chart.each(render);
     }
 
-    var chart = el.selectAll(".chart").data(charts)
-          .each(function(chart) { chart.on("brush", renderAll).on("brushend", renderAll); });
-    renderAll();
-
     function resetChart(i) {
       charts[i].filter(null);
       renderAll();
-    };
+    }
+
+    chart.each(function(chart) { chart.on("brush", renderAll).on("brushend", renderAll); });
+    renderAll();
   }
 
 
-
-
-
-
-  function barChart() {
-    if (!barChart.id) barChart.id = 0;
+  function barChart(id) {
+    if (id == undefined) {
+      if (!barChart.id)
+        barChart.id = 0;
+      id = barChart.id++;
+    }
 
     var margin = { top: 10, right: 10, bottom: 20, left:10 },
         x,
         y = d3.scale.linear().range([100, 0]),
-        id = barChart.id++,
         axis = d3.svg.axis().orient("bottom"),
         brush = d3.svg.brush(),
         value = function(d) { return d },

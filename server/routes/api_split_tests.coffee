@@ -33,7 +33,7 @@ server.get "/v1/split/:test", (req, res, next)->
 server.post "/v1/split/:test/:participant", (req, res, next)->
   alternative = parseInt(req.body.alternative, 10)
   try
-    SplitTest.addParticipant req.params.test, req.params.participant, alternative, (error, result)->
+    SplitTest.participated req.params.test, req.params.participant, alternative, (error, result)->
       if error
         next(error)
       else
