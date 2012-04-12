@@ -59,6 +59,12 @@ describe "API split test", ->
       it "should return created time", ->
         assert Date.create(test.created) - Date.now() < 1000
 
+      it "should return alternatives", ->
+        [a, b] = test.alternatives
+        assert a && b
+        assert a.participants
+        assert.equal a.title, "A"
+        assert.equal b.title, "B"
 
 
   # -- Test data --

@@ -208,6 +208,7 @@ SplitTest =
           alternatives: [a,b].map(({ participants, completed })->
             participants: parseInt(participants)
             completed:    parseInt(completed)
+            title:        title || "AB"[i]
           )
         )
 
@@ -220,12 +221,23 @@ SplitTest =
   # created       - Date/time when test was created
   load: (test_id, callback)->
     base_key = SplitTest.baseKey(test_id)
-    redis.hgetall base_key, (error, hash)->
+    # Use multi to load everything in one go
+    multi = redis.multi()
+    multi.hgetall "#{base_key}"
+    multi.hgetall "#{base_key}.0"
+    multi.hgetall "#{base_key}.1"
+    multi.exec (error, [test, a, b])->
       return callback(error) if error
-      if hash?.title
+      if test?.title
         callback null,
-          title:    hash.title
-          created:  Date.create(hash.created)
+          id:       test_id
+          title:    test.title
+          created:  Date.create(test.created)
+          alternatives: [a,b].map(({ participants, completed, title }, i)->
+            participants: parseInt(participants)
+            completed:    parseInt(completed)
+            title:        title || "AB"[i]
+          )
       else
         callback(null)
 

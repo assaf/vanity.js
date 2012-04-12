@@ -1,7 +1,17 @@
 <div class="split-test">
   <h1><%= @title %></h1>
   <p class="meta">This test was started <%= Date.create(@created).relative() %></p>
-  <div id="alternatives" class="alternatives"></div>
+  <div id="alternatives" class="alternatives">
+    <% for i, alternative of @alternatives: %>
+      <div class="alternative" id="alt-<%= i %>">
+        <h2><%= alternative.title %></h2>
+        <big></big>
+        <small></small>
+        <div class="chart days"><div class="title">Day of week</div></div>
+        <div class="chart hours"><div class="title">Time of day</div></div>
+      </div>
+    <% end %>
+  </div>
 </div>
 <script>
 $(function() {
@@ -9,15 +19,10 @@ $(function() {
 
   var testId = document.location.pathname.split("/").last();
   $.getJSON("/v1/split/" + testId + "/data", function(data) {
-    var divs = d3.select("#alternatives")
-          .selectAll("alternative").data(data)
-          .enter().append("div");
-    divs
-      .attr("class", "alternative")
-      .attr("id", function(d, i) { return "alternative-" + i })
+    d3.select("#alternatives")
+      .selectAll(".alternative").data(data)
       .each(renderAlternative);
   });
-
 
   function renderAlternative(data) {
     // The alternative container element
@@ -28,7 +33,6 @@ $(function() {
       last.participants += d.participants;
       last.converted += d.converted;
       last.conversion = last.converted / last.participants;
-      console.log(d, last)
       return last;
     }
     function reduceRemove(last, d) {
@@ -51,16 +55,6 @@ $(function() {
         hour  = xfilter.dimension(function(d) { return Date.create(d.time).getHours(); }),
         hours = hour.group().reduce(reduceAdd, reduceRemove, reduceInitial).order(value),
         all   = xfilter.groupAll().reduce(reduceAdd, reduceRemove, reduceInitial);
-
-    // Fill it up with content: header, big value (conversion), small value
-    // (participants), and chart.
-    //el.append("h1").text(title);
-    el.append("big");
-    el.append("small");
-    el.append("div").attr("class", "chart days")
-      .append("div").attr("class", "title").text("Day of week");
-    el.append("div").attr("class", "chart hours")
-      .append("div").attr("class", "title").text("Time of day");
 
     // Now let's do some charts.
     var charts = [
