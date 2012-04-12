@@ -33,8 +33,7 @@ server.get "/v1/split/:test", (req, res, next)->
 server.post "/v1/split/:test/:participant", (req, res, next)->
   alternative = parseInt(req.body.alternative, 10)
   try
-    test = new SplitTest(req.params.test)
-    test.addParticipant req.params.participant, alternative, (error, result)->
+    SplitTest.addParticipant req.params.test, req.params.participant, alternative, (error, result)->
       if error
         next(error)
       else
@@ -48,8 +47,7 @@ server.post "/v1/split/:test/:participant", (req, res, next)->
 # Returns status code 204 (No content).
 server.post "/v1/split/:test/:participant/completed", (req, res, next)->
   try
-    test = new SplitTest(req.params.test)
-    test.completed req.params.participant, (error)->
+    SplitTest.completed req.params.test, req.params.participant, (error)->
       if error
         next(error)
       else
@@ -85,8 +83,7 @@ server.get "/v1/split/:test/data", (req, res, next)->
 # outcome     - Recorded outcome
 server.get "/v1/split/:test/:participant", (req, res, next)->
   try
-    test = new SplitTest(req.params.test)
-    test.getParticipant req.params.participant, (error, result)->
+    SplitTest.getParticipant req.params.test, req.params.participant, (error, result)->
       if result
         res.send result
       else

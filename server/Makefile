@@ -19,7 +19,7 @@ setup :
 
 # Create fake data for testing
 fake :
-	coffee lib/fake_it 10000
+	coffee lib/fake_it 1000
 
 
 # UI for ElasticSearch

@@ -94,8 +94,6 @@ fakeActivity = (host, count, callback)->
 
 
 fakeSplitTest = (count, callback)->
-  split = new SplitTest("foo-bar")
-
   Async.waterfall [
     (done)->
       console.log "Wipe clean any split-test data"
@@ -120,9 +118,9 @@ fakeSplitTest = (count, callback)->
       Async.forEachSeries ids, (id, each)->
         Timekeeper.travel Date.create().addMinutes(576) # there are 150 of these in a day
         alternative = Math.floor(Math.random() * 2)
-        split.addParticipant id, alternative, ->
+        SplitTest.addParticipant "foo-bar", id, alternative, ->
           if Math.random() < 0.05
-            split.completed id, each
+            SplitTest.completed "foo-bar", id, each
           else
             each()
       , done

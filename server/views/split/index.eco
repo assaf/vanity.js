@@ -1,0 +1,19 @@
+<h1>Split Tests</h1>
+<table>
+  <thead>
+    <td>Test</td>
+    <td>Started</td>
+    <td>Participants</td>
+    <td>A</td>
+    <td>B</td>
+  </thead>
+  <% for split in @splits: %>
+    <tr>
+      <th><a href="<%= split.url %>"><%= split.title %></a></th>
+      <td><%= split.created.toLocaleDateString() %></td>
+      <td><%= split.alternatives.sum("participants").format(0) %></td>
+      <td><%= (split.alternatives[0].completed / split.alternatives[0].participants).format(2) %>%</td>
+      <td><%= (split.alternatives[1].completed / split.alternatives[1].participants).format(2) %>%</td>
+    </tr>
+  <% end %>
+</table>

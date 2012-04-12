@@ -22,6 +22,7 @@ describe "API split test participants", ->
     before (done)->
       request.post base_url + "8fea081c", json: { alternative: 1 }, (_, response)->
         { statusCode, body } = response
+        console.log body
         done()
 
     it "should return 200", ->
