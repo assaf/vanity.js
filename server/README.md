@@ -163,58 +163,98 @@ DELETE /v1/activity/:id
 ```
 
 
-### Participate In Split Test
+## Web API for Split Tests
+
+### List Tests
 
 ```
-PUT /v1/split/:test/:participant
+PUT /v1/split
 ```
 
-Request path specifies the test and participant identifiers.
+Returns a list of all active split test.
 
-The body is a JSON document (form parameters also supported) with the following
-properties:
+Response JSON document includes a single property `tests` with an array of split
+tests, each an object with the following properties:
+* `id`      - Test identifier
+* `title`   - Human readable title
+* `created` - Timestamp when test was created
 
-* alternative - Alternative number (0 ... n)
-* outcome     - A numeric value
+### Get Test Results
 
-To indicate that participant is taking part in this split test, send a request
-with alternative number.  You can send this request any number of times, only
-the first update is stored.
+```
+PUT /v1/split/:test
+```
 
-To indicate that participant converted, send a request with alternative number
-abd the outcome.  You can send this request any number of times, only the first
-update is stored.
+Returns information about a split test.
 
-If successful, this request returns status code 200 and a JSON document with the
-following properties:
+Response json document includes the following properties:
+* `id`            - Test identifier
+* `title`         - Human readable title
+* `created`       - Timestamp when test was created
+* `alternatives`  - Array of alternatives
 
-* participant - Participant identifeir
-* alternative - Alternative number
-* outcome     - Recorded outcome
+Each alternative includes the following properties:
+* `title`         - Title of this alternative
+* `participants`  - Number of participants in this test
+* `completed`     - Number of participants that completed this test
+* `data`          - Time series data
 
-If participant was already added with a different alternative, the request
-returns status code 409 (Conflict) and the above JSON document.
+Time series data is an array of entries, one for each hour, consisting of:
+* `time`          - The time
+* `participants`  - Number of participants in this test
+* `completed`     - Number of participants that completed this test
 
-If the test identifier, alternative number or outcome are invalid, the request
-returns status code 400.
+If the test does not exist, returns status code 404.
 
+### Add Participant
 
-### Retrieve Participation In Split Test
+```
+POST /v1/split/:test/:participant
+```
+
+Send this request to indicate participant joined the test.
+
+Request path specifies the test and participant identifier.
+
+The request document must specify a single parameter (in any supported media
+type):
+* `alternative` - The alternative chosen for this participant, either 0 (A) or 1
+  (B)
+
+Returns status code 200 and a JSON document with one property:
+* `alternative` - The alternative decided for this participant
+
+If the test identifier or alternative are invalid, the request returns status
+code 400.
+
+### Record Completion
+
+```
+POST /v1/split/:test/:participant/completed
+```
+
+Send this request to indicate participant completed the test (converted).
+
+Request path specifies the test and participant identifier.
+
+Returns status code 204 (No content).
+
+### Retrieve Participant
 
 ```
 GET /v1/split/:test/:participant
 ```
 
-Request path specifies the test and participant identifiers.
+Returns information about participant.
 
-If successful, this request returns status code 200 and a JSON document with the
-following properties:
+Request path specifies the test and participant identifier.
 
-* participant - Participant identifeir
-* joined      - When participant joined this test (RFC3339)
-* alternative - Alternative number
-* completed   - When participant completed this test (RFC3339)
-* outcome     - Recorded outcome
+Response JSON document includes the following properties:
+* `participant` - Identifier
+* `joined`      - Timestamp when participant joined experiment
+* `alternative` - Alternative number
+* `completed`   - Timestamp when participant completed experiment
+* `outcome`     - Recorded outcome
 
 If the participant never joined this split test, the request returns status code
 404.

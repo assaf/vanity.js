@@ -206,9 +206,9 @@ SplitTest =
           id:      ids[i]
           title:   test.title
           created: Date.create(test.created)
-          alternatives: [a,b].map(({ participants, completed })->
-            participants: parseInt(participants)
-            completed:    parseInt(completed)
+          alternatives: [a,b].map(({ title, participants, completed }, i)->
+            participants: parseInt(participants) || 0
+            completed:    parseInt(completed) || 0
             title:        title || "AB"[i]
           )
         )
@@ -227,72 +227,42 @@ SplitTest =
     multi.hgetall "#{base_key}"
     multi.hgetall "#{base_key}.0"
     multi.hgetall "#{base_key}.1"
-    multi.exec (error, [test, a, b])->
+    multi.hgetall "#{base_key}.participants"
+    multi.zrange  "#{base_key}.joined", 0, -1, "withscores"
+    multi.hgetall "#{base_key}.converted.0"
+    multi.hgetall "#{base_key}.converted.1"
+    multi.exec (error, [test, a, b, participants, joined, converted_a, converted_b])->
+      converted = [converted_a, converted_b]
       return callback(error) if error
-      if test?.title
-        callback null,
-          id:       test_id
-          title:    test.title
-          created:  Date.create(test.created)
-          alternatives: [a,b].map(({ participants, completed, title }, i)->
-            participants: parseInt(participants)
-            completed:    parseInt(completed)
-            title:        title || "AB"[i]
-          )
-      else
+      unless test?.title # no such test
         callback(null)
+        return
 
+      # Next we need to determine how many participants joined each
+      # alternative in any given hour.
+      hourly = [{}, {}]
+      for [id, time] in joined.inGroupsOf(2)
+        time -= time % 3600000 # round down to nearest hour
+        set = hourly[participants[id]]
+        hour = set[time] ||= { time: Date.create(time).toISOString() }
+        hour.participants = (hour.participants || 0) + 1
 
-  # Loads test data and passes callback array with one element for each
-  # alternative, containing:
-  # title   - Alternative title
-  # weight  - Designated weight
-  # data    - Data points
-  #
-  # Each data point has the properties:
-  # time          - Time stamp (in hour increments) RFC3999
-  # participants  - How many participants joined during that hour
-  # completed     - How many of these participants completed the test
-  data: (test_id, callback)->
-    base_key = SplitTest.baseKey(test_id)
-    Async.waterfall [
-      (done)->
-        # First we need to determine which participant is assigned what
-        # alternative. This gives us a map from participant ID to alternative
-        # number.
-        redis.hgetall "#{base_key}.participants", done
+      # And from that we can determine how many converted in each hour.
+      [0, 1].each (alternative)->
+        set = hourly[alternative]
+        for _, entry of set
+          entry.converted = parseInt(converted[alternative][entry.time]) || 0
 
-    , (participants, doneJoined)->
-        # Next we need to determine how many participants joined each
-        # alternative in any given hour.
-        hourly = [{}, {}]
-        redis.zrange "#{base_key}.joined", 0, -1, "withscores", (error, joined)->
-          return doneJoined(error) if error
-          for [id, time] in joined.inGroupsOf(2)
-            time -= time % 3600000 # round down to nearest hour
-            set = hourly[participants[id]]
-            hour = set[time] ||= { time: Date.create(time).toISOString() }
-            hour.participants = (hour.participants || 0) + 1
-          doneJoined(null, hourly)
-
-    , (hourly, doneConverted)->
-        # Load everything we know about conversion for each given time slot, and
-        # update the data record.
-        Async.map [0, 1], (alternative, doneEach)->
-          set = hourly[alternative]
-          redis.hgetall "#{base_key}.converted.#{alternative}", (error, converted)->
-            return doneEach(error) if error
-            for _, entry of set
-              entry.converted = parseInt(converted[entry.time]) || 0
-            doneEach(null, set)
-        , doneConverted
-
-    , (hourly, done)->
-        # Now let's turn each hourly map into a sorted array.
-        sorted = (Object.values(set).sort("time") for set in hourly)
-        done(null, sorted)
-
-    ], callback
+      callback null,
+        id:       test_id
+        title:    test.title
+        created:  Date.create(test.created)
+        alternatives: [a,b].map(({ participants, completed, title }, alternative)->
+          participants: parseInt(participants) || 0
+          completed:    parseInt(completed) || 0
+          title:        title || "AB"[alternative]
+          data:         Object.values(hourly[alternative]).sort("time")
+        )
 
 
   # -- Utility --

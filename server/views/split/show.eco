@@ -18,7 +18,9 @@ $(function() {
   var DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
   var testId = document.location.pathname.split("/").last();
-  $.getJSON("/v1/split/" + testId + "/data", function(data) {
+  $.getJSON("/v1/split/" + testId, function(test) {
+    data = test.alternatives.map(function(alternative) { return alternative.data });
+    console.log(data)
     d3.select("#alternatives")
       .selectAll(".alternative").data(data)
       .each(renderAlternative);
