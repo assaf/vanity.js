@@ -1,7 +1,9 @@
-# Vanity.js Client
+# Vanity.js
 
 
-#### Vanity(options)
+## Client
+
+### Vanity(options)
 
 Create a new client and configure it to use given server and access token.
 
@@ -25,8 +27,7 @@ vanity.activity({ actor: "Assaf", verb: "shared", object: "http://bit.ly/GLUa9S"
 
 Use these methods to operate on the activity stream.
 
-
-#### vanity.activity(activity)
+### vanity.activity(activity)
 
 Adds a new activity to the activity stream:
 
@@ -78,7 +79,7 @@ vanity.activity({
 
 Use these to work with split (A/B) tests.
 
-#### vanity.split(id)
+### vanity.split(id)
 
 Returns a split test (`SplitTest`).
 
@@ -95,7 +96,7 @@ var signup = vanity.split("signup-form");
 ```
 
 
-#### splittest.show(participant, alternative, callback)
+### splittest.show(participant, alternative, callback)
 
 Use this when choosing which alternative to show.
 
@@ -147,9 +148,7 @@ split.show(userId, function(error, alternative) {
 })
 ```
 
-
-#### splittest.completed(participant, callback)
-
+### splittest.completed(participant, callback)
 
 Use this to record when a participant completed the test (converted).
 
@@ -166,9 +165,7 @@ You can call this method multiple times for a given participant, only the first
 call has any affect.  You can call this method without first calling `show`, and
 it will also add the participant to the experiment.
 
-
-
-#### splittest.get(participant, callback)
+### splittest.get(participant, callback)
 
 Retrieve all that is known about a participant.
 
@@ -183,5 +180,4 @@ Result contains:
 * alternative - Alternative number
 * joined      - When participant joined the test (Date)
 * completed   - When participant completed the test (Date)
-
 
