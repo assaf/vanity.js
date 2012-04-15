@@ -35,7 +35,7 @@ $ make install test
 ```
 
 
-## Web API
+## Web API for Activity Stream
 
 Activities are represented as JSON objects with the following properties:
 
@@ -74,7 +74,6 @@ Each activity may include one or more labels.  Labels are text strings that
 allow filtering of activities, e.g. all activities belonging to a project or a
 feature.
 
-
 ### Create A New Activity
 
 ```
@@ -90,7 +89,6 @@ asynchronously, the activity may take some time to appear at that location.
 If the request document is invalid, the server returns status code 400 with a
 short error message.
 
-
 ### Retrieve Specific Activity
 
 ```
@@ -99,7 +97,6 @@ GET /v1/activity/:id
 
 The response returns a single activity as either JSON document or HTML document
 fragment (a `div` element).
-
 
 ### Querying Recent Activities
 
@@ -135,7 +132,6 @@ The response document contains the following properties:
 * `prev` - Relative path of query to retrieve previous set of activities (if not
   first set)
 
-
 ### Activity Stream
 
 ```
@@ -154,7 +150,6 @@ events.addEventListener("activity", function(event) {
   console.log("New activity: " + event.data);
 })
 ```
-
 
 ### Deleting An Activity
 

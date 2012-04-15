@@ -6,12 +6,6 @@ server   = require("../config/server")
 
 
 # Create a new activity.
-#
-# If request is a valid activity, returns 201 and Location header.
-#
-# Otherwise, returns 400 and error message.
-#
-# Does not wait for activity to be indexed.
 server.post "/v1/activity", (req, res, next)->
   Activity.create req.body, (error, id)->
     if error
@@ -21,20 +15,6 @@ server.post "/v1/activity", (req, res, next)->
 
 
 # Retrieve recent activities
-#
-# Supports the following query parameters:
-# query   - Query string
-# limit   - How many results to return (up to LIMIT)
-# offset  - Start at this offset (default to 0)
-# start   - Returns activities published at/after this time (ISO8601)
-# end     - Returns activities published up (excluding) this time (ISO8601)
-#
-# Returns a JSON document with the following properties:
-# totalItems - Total number of activities that match this query
-# items      - Activities that match this query (from offset, up to limit)
-# url        - URL to the full collection
-# next       - Path for requesting the next result set (if not last)
-# prev       - Path for requesting the previous result set (if not first
 server.get "/v1/activity", (req, res)->
   params = {}
   # Only add query fields that are present.  We use params object to construct query string for next/prev navigation
@@ -72,7 +52,6 @@ server.get "/v1/activity", (req, res)->
       result.prev = "/v1/activity?" + QS.stringify(prev)
 
     res.send result, 200
-  
 
 # Server-sent events activity stream.
 server.get "/v1/activity/stream", (req, res, next)->
@@ -92,12 +71,6 @@ server.get "/v1/activity/stream", (req, res, next)->
   res.socket.on "close", ->
     Activity.removeListener "activity", send
 
-
-server.get "/v1/activity/frequency", (req, res, next)->
-  Activity.frequency req.query.params, (error, results)->
-    res.send results
-
-
 # Retrieve single activity.
 server.get "/v1/activity/:id", (req, res, next)->
   Activity.get req.params.id, (error, activity)->
@@ -107,7 +80,6 @@ server.get "/v1/activity/:id", (req, res, next)->
       res.send enhance(activity), 200
     else
       res.send 404
-
 
 # Delete activity.
 server.del "/v1/activity/:id", (req, res, next)->
