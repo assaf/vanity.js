@@ -73,15 +73,11 @@ fakeActivity = (host, count, callback)->
           displayName: actor
         verb:        verb
         labels:      labels
-      if HOST
-        do (activity)->
-          queue.push (done)->
-            Request.post "http://#{HOST}/v1/activity", json: activity, done
-      else
-        activity.published = published
-        do (activity)->
-          queue.push (done)->
-            Activity.create activity, done
+        location:    "123 Main St, San Francisco, CA"
+      activity.published = published
+      do (activity)->
+        queue.push (done)->
+          Activity.create activity, done
      
     Async.series queue,
       (error)->
