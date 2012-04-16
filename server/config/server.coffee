@@ -49,11 +49,11 @@ server.configure ->
 
 # Authentication
 server.configure ->
-  # Digitally signed cookies.  If environment variable COOKIE_KEYS is set, we
-  # take the signing keys from there.  Otherwise, Keygrip uses a random value
-  # created during npm install.
-  if process.env.VANITY_KEYS
-    keys = process.env.VANITY_KEYS.split(" ")
+  # Digitally signed cookies.  If environment variable VANITY_COOKIE_KEYS is
+  # set, we take the signing keys from there.  Otherwise, everyone uses the same
+  # value.
+  if process.env.VANITY_COOKIE_KEYS
+    keys = process.env.VANITY_COOKIE_KEYS.split(/,\s*/)
   else
     keys = ["9c7516780b8bc00b523c565bb20980ee0865dcfc"]
   server.use Cookies.connect(new Keygrip(keys))
@@ -67,12 +67,11 @@ server.configure ->
     if cookie
       user = JSON.parse(cookie)
       res.local "user", user
-      res.local "authorized", true
     next()
 
   # API access tokens.
-  tokens = (process.env.VANITY_TOKENS || "").split(/\s+/)
-  logger.info "API access restricted to: #{tokens.join(", ")}"
+  token = process.env.VANITY_TOKEN
+  logger.info "API access restricted to: #{token}"
   # Checks authorization token for API access.
   server.use (req, res, next)->
     next()

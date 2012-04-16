@@ -6,12 +6,25 @@ logger    = require("../config/logger")
 server    = require("../config/server")
 
 
-# Send browser here to authenticate
+# If set, only authorize members of this team
+team_id = process.env.GITHUB_TEAM_ID
+# If set, only authorize specified logins
+logins = process.env.GITHUB_LOGINS?.split(/,\s*/)
+
+
+# Send browser here to authenticate.
+#
+# Use return_to query parameter to tell browser which page to go back to after
+# authentication.
 server.get "/authenticate", (req, res, next)->
+  # Pass return_to parameter to callback
   redirect_uri = "http://#{req.headers.host}/oauth/callback"
   redirect_uri += "?return_to=#{req.query.return_to}" if req.query.return_to
+  # You need 'repo' scope to list team members
+  scope = "repo" if team_id
   url = "https://github.com/login/oauth/authorize?" +
-    QS.stringify(client_id: process.env.GITHUB_CLIENT_ID, redirect_uri: redirect_uri, scope: "repo")
+    QS.stringify(client_id: process.env.GITHUB_CLIENT_ID, redirect_uri: redirect_uri, scope: scope)
+  # This takes us to Github
   res.redirect url
 
 
@@ -28,6 +41,7 @@ server.get "/oauth/callback", (req, res, next)->
     return next(error) if error
     # If we got OAuth error, just show it.
     if json && json.error
+      logger.warning json.error
       req.flash "error", json.error
       res.redirect "/"
       return
@@ -42,10 +56,7 @@ server.get "/oauth/callback", (req, res, next)->
         name:         name
         login:        login
         gravatar_id:  gravatar_id
-        token:        token
 
-      team_id = process.env.GITHUB_TEAM_ID
-      logins = process.env.GITHUB_LOGINS
       if team_id
         # Easiest way to determine if user is member of a team:
         # "In order to list members in a team, the authenticated user must be a member of the team."
@@ -56,14 +67,12 @@ server.get "/oauth/callback", (req, res, next)->
           if response.statusCode == 200
             members = JSON.parse(body).map((m)-> m.login)
           if members && members.indexOf(login) >= 0
-            logger.info "#{login} logged in successfully"
             log_in(user)
           else
             fail(user)
       else if logins
         # Authorization based on Github login
-        if logins.split(/\s+/).indexOf(login) >= 0
-          logger.info "#{login} logged in successfully"
+        if logins.indexOf(login) >= 0
           log_in(user)
         else
           fail(user)
@@ -72,6 +81,7 @@ server.get "/oauth/callback", (req, res, next)->
         fail(user)
 
   log_in = (user)->
+    logger.info "#{user.login} logged in successfully"
     logger.debug "Logged in", user
     # Set the user cookie for the session
     res.cookies.set "user", JSON.stringify(user), signed: true
@@ -79,7 +89,7 @@ server.get "/oauth/callback", (req, res, next)->
     res.redirect unescape(req.query.return_to || "/")
 
   fail = (user)->
-    logger.debug "Access denied for", user
+    logger.warning "Access denied for", user
     req.flash "error", "You are not authorized to access this application"
     # Can't redirect back to protected resource, only place to go is home
     res.redirect "/"
