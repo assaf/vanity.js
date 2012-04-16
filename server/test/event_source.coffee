@@ -53,7 +53,7 @@ class EventSource
   _connect: ->
     # Open connection to Web server and send request.
     url = URL.parse(@url)
-    client = Net.connect(url.port, url.hostname)
+    client = Net.connect(url.port || 80, url.hostname)
     client.setNoDelay(true)
     client.on "connect", =>
       @_client = client
@@ -84,16 +84,19 @@ class EventSource
         if status_code == 200
           # Announce the connection and set up event handlers to listen for data, errors and closing. 
           @_announce()
-          client.on "data", @_data.bind(this)
           client.on "end", =>
             @_flush()
             @_reopen()
           client.on "error", @_error.bind(this)
+          client.on "data", @_data.bind(this)
           # If we picked some body chunks with the header, have them processed next.
           client.emit "data", body unless body == ""
         else
           @_error new Error("Status code #{status_code}")
           return
+
+    client.on "error", @_error.bind(this)
+
 
   # "When a user agent is to announce the connection, the user agent must queue a task which, if the readyState
   # attribute is set to a value other than CLOSED, sets the readyState attribute to OPEN and fires a simple event named
@@ -120,6 +123,8 @@ class EventSource
           chunk = @_chunked_buffer.slice(prefix, prefix + size)
           @_chunked_buffer = @_chunked_buffer.slice(prefix + size + 2)
           @_chunk chunk
+        else
+          break
     else
       @_chunk chunk
 
