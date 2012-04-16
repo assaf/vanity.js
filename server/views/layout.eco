@@ -12,12 +12,17 @@
   </head>
   <body>
     <div class="header">
-      <span class="user">
-        <img src="//secure.gravatar.com/avatar/<%= @user.gravatar_id %>?s=16">
-        <%= @user.name %>
-      </span>
-      <a href="/logout">Logout</a>
+      <% if @user: %>
+        <span class="user">
+          <img src="//secure.gravatar.com/avatar/<%= @user.gravatar_id %>?s=16">
+          <%= @user.name %>
+        </span>
+        <a href="/logout">Logout</a>
+      <% else: %>
+        <a href="/authenticate">Sign in with Github</a>
+      <% end %>
     </div>
+    <%= @error %>
     <div class="main-content">
       <%- @body %>
     </div>
