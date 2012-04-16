@@ -33,15 +33,14 @@ You can then limit access to specific Github accounts, or all members of a given
 team:
 
 * `GITHUB_LOGINS` - List of Github logis that are allowed access to the
-  dashboard (commad separated)
+  dashboard
 * `GITHUB_TEAM_ID` - Allow access to all members of this team (you can find the
   identifier in the URL of the team page)
 
 Keeping users logged in relies on a signed session cookie.  The secret key for
 calculating that signature comes from another environment variable:
 
-* `VANITY_COOKIE_KEYS` - One or more keys that are used to sign and verify
-  cookies (commad separated)
+* `VANITY_KEYS` - One or more keys that are used to sign and verify cookies
 
 In development mode the file `server.sh` contains Github client ID and secret
 that can be used to login to [`localhost:3000`](http://localhost:3000/).  You
