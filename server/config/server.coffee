@@ -7,6 +7,8 @@ process.env.NODE_ENV ||= "development"
 
 
 Express   = require("express")
+Keygrip   = require("keygrip")
+Cookies   = require("cookies")
 FS        = require("fs")
 logger    = require("./logger")
 Activity  = require("../models/activity")
@@ -43,7 +45,40 @@ server.configure ->
       res.end = end_fn
       end_fn.apply(res, arguments)
     next()
-  
+
+
+# Authentication
+server.configure ->
+  # Digitally signed cookies.  If environment variable COOKIE_KEYS is set, we
+  # take the signing keys from there.  Otherwise, Keygrip uses a random value
+  # created during npm install.
+  keys = process.env.VANITY_COOKIE_KEYS.split(" ") if process.env.VANITY_COOKIE_KEYS
+  server.use Cookies.connect(new Keygrip(keys))
+
+  # Authentication uses Github OAuth, authorization implies being one of the names
+  # listed in USERS environment variable.
+  users = (process.env.VANITY_USERS || "").split(/\s+/)
+  logger.info "Access restricted to: #{users.join(", ")}"
+
+  # If signed cookie user is set, set the local variable user to that object, so
+  # you have access to login, name and gravatar_id.  Also sets the local
+  # variable authorized.
+  server.use (req, res, next)->
+    cookie = req.cookies.get("user", signed: true)
+    if cookie
+      user = JSON.parse(cookie)
+      if users.indexOf(user.login) >= 0
+        res.local "user", user
+        res.local "authorized", true
+    next()
+
+  # API access tokens.
+  tokens = (process.env.VANITY_TOKENS || "").split(/\s+/)
+  logger.info "API access restricted to: #{tokens.join(", ")}"
+  # Checks authorization token for API access.
+  server.use (req, res, next)->
+    next()
+
 
 # Error handling for production
 server.configure "production", ->
@@ -62,11 +97,11 @@ server.configure "development", ->
 # errors.
 server.configure "test", ->
   server.error (error, req, res, next)->
-    console.error error.stack
+    logger.error error.stack
     next error
 
   process.on "uncaughtException", (error)->
-    console.error error
+    logger.error error
     process.exit(1)
 
 
