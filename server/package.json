@@ -1,11 +1,11 @@
 { "name": "vanity-server",
-  "version": "0.1.0",
-  "description": "Activity stream server.",
+  "version": "0.2.0",
+  "description": "Vanity dashboard and API",
   "author": "Assaf Arkin <assaf@labnotes.org> (http://labnotes.org/)",
   "main": "index",
   "scripts": {
     "start":  "node server.js",
-    "test":   "mocha -R spec"
+    "test":   "mocha"
   },
   "engines": {
     "node": ">= 0.6.0"
