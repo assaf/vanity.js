@@ -4,13 +4,6 @@ server   = require("../config/server")
 SplitTest = require("../models/split_test")
 
 
-authenticate = (req, res, next)->
-  if res.local("authorized")
-    next()
-  else
-    res.send 401
-
-
 # Returns a list of all active split test.
 server.get "/v1/split", (req, res, next)->
   SplitTest.list (error, tests)->

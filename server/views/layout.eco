@@ -11,13 +11,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
   </head>
   <body>
-    <div class="header">
-      <span class="user">
-        <img src="//secure.gravatar.com/avatar/<%= @user.gravatar_id %>?s=16">
-        <%= @user.name %>
-      </span>
-      <a href="/logout">Logout</a>
-    </div>
     <div class="main-content">
       <%- @body %>
     </div>
