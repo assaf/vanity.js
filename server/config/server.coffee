@@ -52,12 +52,13 @@ server.configure ->
   # Digitally signed cookies.  If environment variable COOKIE_KEYS is set, we
   # take the signing keys from there.  Otherwise, Keygrip uses a random value
   # created during npm install.
-  if process.env.VANITY_KEYS
-    keys = process.env.VANITY_KEYS.split(" ")
-  else
-    keys = ["9c7516780b8bc00b523c565bb20980ee0865dcfc"]
+  keys = process.env.VANITY_COOKIE_KEYS.split(" ") if process.env.VANITY_COOKIE_KEYS
   server.use Cookies.connect(new Keygrip(keys))
-  server.use Express.session(secret: keys[0])
+
+  # Authentication uses Github OAuth, authorization implies being one of the names
+  # listed in USERS environment variable.
+  users = (process.env.VANITY_USERS || "").split(/\s+/)
+  logger.info "Access restricted to: #{users.join(", ")}"
 
   # If signed cookie user is set, set the local variable user to that object, so
   # you have access to login, name and gravatar_id.  Also sets the local
@@ -66,8 +67,9 @@ server.configure ->
     cookie = req.cookies.get("user", signed: true)
     if cookie
       user = JSON.parse(cookie)
-      res.local "user", user
-      res.local "authorized", true
+      if users.indexOf(user.login) >= 0
+        res.local "user", user
+        res.local "authorized", true
     next()
 
   # API access tokens.
@@ -113,15 +115,6 @@ server.configure ->
   FS.readdir "#{__dirname}/../routes", (error, files)->
     for file in files
       require("#{__dirname}/../routes/#{file}")
-
-
- server.dynamicHelpers
-   # Flash error message available in each view
-   error: (req, res)->
-     return req.flash("error")
-   # Flash notice message available in each view
-   notice: (req, res)->
-     return req.flash("notice")
 
 
 # Create ElasticSearch index if necessary.

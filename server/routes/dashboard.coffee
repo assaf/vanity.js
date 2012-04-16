@@ -9,13 +9,8 @@ login = (req, res, next)->
   if res.local("user") 
     next()
   else
-    res.redirect "/authenticate?return_to=#{escape(req.url)}"
-
-
-# -- Main page --
-
-server.get "/", (req, res, next)->
-  res.render "index"
+    res.cookies.set "return_to", req.url
+    res.redirect "/authenticate"
 
 
 # -- Activity stream --

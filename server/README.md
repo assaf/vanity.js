@@ -20,31 +20,22 @@ $ NODE_ENV=production node server.js
 
 ## Authentication
 
-Vanity supports two authentication methods.
+Vanity supports two authentication methods.  Client applications that make API
+calls authenticate using a token.  End-users authentication using Github Auth.
 
-Users authenticate using Github OAuth. To do that you'll need to [register a new
-application](https://github.com/settings/applications), and set the following
-environment variables:
+Authentication requires creating a Github application and setting up the
+following environment variables:
 
 * `GITHUB_CLIENT_ID` - The Github application's client ID
 * `GITHUB_CLIENT_SECRET` -  The Github application's client secret
+* `VANITY_COOKIE_KEYS` - One or more secrets that are used to sign and verify
+  authentication cookies
+* `VANITY_USERS` - Space-separated list of Github logins of all users allowed
+  access to the dashboard
+* `VANITY_TOKENS` - Space-separated list of API access tokens
 
-You can then limit access to specific Github accounts, or all members of a given
-team:
-
-* `GITHUB_LOGINS` - List of Github logis that are allowed access to the
-  dashboard
-* `GITHUB_TEAM_ID` - Allow access to all members of this team (you can find the
-  identifier in the URL of the team page)
-
-Keeping users logged in relies on a signed session cookie.  The secret key for
-calculating that signature comes from another environment variable:
-
-* `VANITY_KEYS` - One or more keys that are used to sign and verify cookies
-
-In development mode the file `server.sh` contains Github client ID and secret
-that can be used to login to [`localhost:3000`](http://localhost:3000/).  You
-may need to edit this file to add your Github login or team ID.
+The file `server.sh` is used to run the server in development mode and uses
+Github application credentials that allow login to `localhost:3000`.
 
 
 ## Testing
