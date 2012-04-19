@@ -33,9 +33,10 @@ $(function() {
     fn.call(activities, activity);
     var verb = activity.verb;
     verbs[verb] = (verbs[verb] || 0) + 1;
-    activity.labels.forEach(function(label) {
-      labels[label] = (labels[label] || 0) + 1;
-    });
+    if (activity.labels)
+      activity.labels.forEach(function(label) {
+        labels[label] = (labels[label] || 0) + 1;
+      });
 
     // Remove until we have no more than maximum.
     while (activities.length > MAXIMUM) {
