@@ -21,6 +21,10 @@ setup :
 fake :
 	coffee lib/fake_it 1000
 
+send :
+	curl http://localhost:3000/v1/activity -H "Content-Type: application/json" -d \
+		'{ "actor": { "displayName": "Assaf" }, "verb": "posted" }'
+
 
 # UI for ElasticSearch
 es-view :
