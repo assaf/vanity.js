@@ -1,4 +1,5 @@
 process.env.NODE_ENV = "test"
+process.env.VANITY_TOKEN = "secret"
 
 Async       = require("async")
 Replay      = require("replay")
@@ -46,7 +47,7 @@ Helper =
     # Collect activities into this array.
     activities = []
     # Open event source and start listening to events.
-    events = new EventSource("http://localhost:3003/v1/activity/stream")
+    events = new EventSource("http://localhost:3003/v1/activity/stream?access_token=secret")
     events.onmessage = (event)->
       activities.push JSON.parse(event.data)
       # If we got as many activities as we need, close this event source and

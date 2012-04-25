@@ -23,7 +23,14 @@ function Vanity(options) {
   // We emit this error when we can't make send a request, but we don't want
   // the default behavior of uncaught exception to kill Node.
   this.on("error", function() { });
+  // Returns authorization headers.
+  this.headers = function() {
+    return { authorization: "Bearer " + this.token };
+  }
 }
+
+
+
 
 Util.inherits(Vanity, Events.EventEmitter);
 
@@ -99,8 +106,9 @@ Vanity.prototype.activity = function(activity) {
         location: activity.location,
         labels:   activity.labels
       };
+
   try {
-    Request.post({ url: "http://" + this.host + "/v1/activity", json: params }, function(error, response, body) {
+    Request.post({ url: "http://" + this.host + "/v1/activity", headers: this.headers(), json: params }, function(error, response, body) {
       if (error)
         self.emit("error", error);
       else if (response && response.statusCode >= 400)
@@ -237,7 +245,7 @@ SplitTest.prototype.show = function(participant, alternative, callback) {
   }
 
   params = { alternative: alternative };
-  Request.post({ url: this.baseUrl + "/" + participant, json: params }, function(error, response, body) {
+  Request.post({ url: this.baseUrl + "/" + participant, headers: vanity.headers(), json: params }, function(error, response, body) {
     var actual;
     if (!error && response.statusCode >= 400)
       error = new Error("Server returned " + response.statusCode + ": " + body);
@@ -316,7 +324,7 @@ SplitTest.prototype.completed = function(participant, callback) {
       typeof(participant) != "number" && !(participant instanceof Number))
     throw new Error("Expecting participant to be identifier (string or number)");
 
-  Request.post({ url: this.baseUrl + "/" + participant + "/completed" }, function(error, response, body) {
+  Request.post({ url: this.baseUrl + "/" + participant + "/completed", headers: vanity.headers() }, function(error, response, body) {
     // There are protocol errors (error) and server reported errors (4xx and
     // 5xx).
     if (!error && response.statusCode >= 400)
@@ -350,7 +358,7 @@ SplitTest.prototype.get = function(participant, callback) {
 
   if (!callback)
     throw new Error("Expecting callback as last argument");
-  Request.get({ url: this.baseUrl + "/" +participant }, function(error, response, body) {
+  Request.get({ url: this.baseUrl + "/" + participant, headers: this.vanity.headers() }, function(error, response, body) {
     var result;
     if (!error && response.statusCode == 200) {
       result = JSON.parse(body);
@@ -386,7 +394,7 @@ SplitTest.prototype.stats = function(callback) {
     return;
   }
 
-  Request.get({ url: this.baseUrl }, function(error, response, body) {
+  Request.get({ url: this.baseUrl, headers: this.vanity.headers() }, function(error, response, body) {
     if (!error && response.statusCode >= 400)
       error = new Error("Server returned " + response.statusCode + ": " + body);
     if (body) {
