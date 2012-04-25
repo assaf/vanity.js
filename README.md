@@ -17,7 +17,7 @@ Example:
 
 ```
 var Vanity = require("vanity"),
-    vanity = new Vanity({ host: "vanity.local:443", token: "secret token" });
+    vanity = new Vanity({ host: "vanity.local:443", token: "supersecret" });
 
 vanity.activity({ actor: "Assaf", verb: "shared", object: "http://bit.ly/GLUa9S" })
 ```
