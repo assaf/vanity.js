@@ -25,16 +25,15 @@ function Vanity(options) {
   this.on("error", function() { });
   // Returns authorization headers.
   this.headers = function() {
-    return { authorization: "Bearer " + this.token };
+    if (this.token)
+      return { authorization: "Bearer " + this.token };
+    else
+      return null;
   }
 }
 
 
-
-
 Util.inherits(Vanity, Events.EventEmitter);
-
-
 
 
 // -- Activity stream ---
@@ -86,7 +85,7 @@ Util.inherits(Vanity, Events.EventEmitter);
 //   })
 Vanity.prototype.activity = function(activity) {
   // Ignore unless configured to connect to a server.
-  if (!this.host || !this.token)
+  if (!this.host)
     return;
 
   // Actor/object can be a string, in which case they are the display name.
@@ -236,7 +235,7 @@ SplitTest.prototype.show = function(participant, alternative, callback) {
     throw new Error("Expecting callback to be a function");
 
   // Ignore unless configured to connect to a server.
-  if (!vanity.host || !vanity.token) {
+  if (!vanity.host) {
     if (callback)
       process.nextTick(function() {
         callback(null, alternative);
@@ -312,7 +311,7 @@ SplitTest.prototype.completed = function(participant, callback) {
   var vanity = this.vanity;
 
   // Ignore unless configured to connect to a server.
-  if (!vanity.host || !vanity.token) {
+  if (!vanity.host) {
     if (callback)
       process.nextTick(callback);
     return;
@@ -350,7 +349,7 @@ SplitTest.prototype.completed = function(participant, callback) {
 // completed   - When participant completed the test (Date)
 SplitTest.prototype.get = function(participant, callback) {
   // Ignore unless configured to connect to a server.
-  if (!this.vanity.host || !this.vanity.token) {
+  if (!this.vanity.host) {
     if (callback)
       process.nextTick(callback);
     return;
@@ -387,7 +386,7 @@ SplitTest.prototype.stats = function(callback) {
     throw new Error("Expecting callback as last argument");
 
   // Ignore unless configured to connect to a server.
-  if (!this.vanity.host || !this.vanity.token) {
+  if (!this.vanity.host) {
     process.nextTick(function() {
       callback(new Error("Missing host or token"));
     });
