@@ -79,8 +79,9 @@ Util.inherits(Vanity, Events.EventEmitter);
 //   })
 Vanity.prototype.activity = function(activity) {
   // Ignore unless configured to connect to a server.
-  if (!this.host && !this.token)
+  if (!this.host || !this.token)
     return;
+
   // Actor/object can be a string, in which case they are the display name.
   var self   = this,
       actor  = activity.actor,
@@ -226,6 +227,15 @@ SplitTest.prototype.show = function(participant, alternative, callback) {
   if (callback && !typeof(callback) == "function")
     throw new Error("Expecting callback to be a function");
 
+  // Ignore unless configured to connect to a server.
+  if (!vanity.host || !vanity.token) {
+    if (callback)
+      process.nextTick(function() {
+        callback(null, alternative);
+      });
+    return;
+  }
+
   params = { alternative: alternative };
   Request.post({ url: this.baseUrl + "/" + participant, json: params }, function(error, response, body) {
     var actual;
@@ -233,13 +243,14 @@ SplitTest.prototype.show = function(participant, alternative, callback) {
       error = new Error("Server returned " + response.statusCode + ": " + body);
     if (error)
       vanity.emit("error", error)
-    else {
+    else if (response.statusCode == 200) {
       actual = body.alternative;
       if (actual != alternative) {
         cache[participant] = actual;
         vanity.emit("conflict", { participant: participant, alternative: actual, conflict: alternative });
       }
-    }
+    } else // No response from server (404, 500, etc)
+      actual = alternative;
     if (callback)
       callback(error, actual)
   });
@@ -261,6 +272,13 @@ SplitTest.prototype.show = function(participant, alternative, callback) {
 // `show`, and it will also add the participant to the experiment.
 SplitTest.prototype.completed = function(participant, callback) {
   var vanity = this.vanity;
+
+  // Ignore unless configured to connect to a server.
+  if (!vanity.host || !vanity.token) {
+    if (callback)
+      process.nextTick(callback);
+    return;
+  }
 
   // Yes we do get errors from the server for all these cases, but not all
   // requests wait for a response, and better fail fast.
@@ -293,6 +311,13 @@ SplitTest.prototype.completed = function(participant, callback) {
 // joined      - When participant joined the test (Date)
 // completed   - When participant completed the test (Date)
 SplitTest.prototype.get = function(participant, callback) {
+  // Ignore unless configured to connect to a server.
+  if (!this.vanity.host || !this.vanity.token) {
+    if (callback)
+      process.nextTick(callback);
+    return;
+  }
+
   if (!callback)
     throw new Error("Expecting callback as last argument");
   Request.get({ url: this.baseUrl + "/" +participant }, function(error, response, body) {
@@ -322,6 +347,15 @@ SplitTest.prototype.get = function(participant, callback) {
 SplitTest.prototype.stats = function(callback) {
   if (!callback)
     throw new Error("Expecting callback as last argument");
+
+  // Ignore unless configured to connect to a server.
+  if (!this.vanity.host || !this.vanity.token) {
+    process.nextTick(function() {
+      callback(new Error("Missing host or token"));
+    });
+    return;
+  }
+
   Request.get({ url: this.baseUrl }, function(error, response, body) {
     if (!error && response.statusCode >= 400)
       error = new Error("Server returned " + response.statusCode + ": " + body);
