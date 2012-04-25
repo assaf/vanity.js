@@ -259,6 +259,36 @@ SplitTest.prototype.show = function(participant, alternative, callback) {
 }
 
 
+// Use this when choosing which alternative to show.
+//
+// Without callback, returns true if showing alternative A, false for B.
+//
+// With callback, passes true if showing alternative A, false for B.
+SplitTest.prototype.showA = function(participant, callback) {
+  if (callback) {
+    this.show(participant, function(error, alternative) {
+      callback(error, !alternative);
+    })
+  } else
+    return !this.show(participant);
+}
+
+
+// Use this when choosing which alternative to show.
+//
+// Without callback, returns true if showing alternative B, false for A.
+//
+// With callback, passes true if showing alternative B, false for A.
+SplitTest.prototype.showB = function(participant, callback) {
+  if (callback) {
+    this.show(participant, function(error, alternative) {
+      callback(error, alternative);
+    })
+  } else
+    return this.show(participant);
+}
+
+
 // Use this to record conversion (goal completion).
 //
 // Example:

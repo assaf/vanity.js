@@ -148,6 +148,30 @@ split.show(userId, function(error, alternative) {
 })
 ```
 
+### splittest.showA(participant, callback)
+
+Convenience function that works just like `show`, with one difference.
+
+Without callback, if the chosen alternative is `A`, returns `true`.  If the
+chosen alternative is `B`, returns `false`.
+
+With a callback, if the chosen alternative is `A`, passes `true` as the second
+argument.
+
+By constract, `show` returns `false` for the first alternative (`A`).
+
+
+### splittest.showB(participant, callback)
+
+Convenience function that works just like `show`.
+
+Without callback, if the chosen alternative is `B`, returns `true`.  If the
+chosen alternative is `A`, returns `false`.
+
+With a callback, if the chosen alternative is `B`, passes `true` as the second
+argument.
+
+
 ### splittest.completed(participant, callback)
 
 Use this to record when a participant completed the test (converted).

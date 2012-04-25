@@ -61,7 +61,6 @@ describe "split", ->
           done()
 
 
-
   describe "add participant without alternative", ->
 
     describe "no callback", ->
@@ -198,6 +197,70 @@ describe "split", ->
         broken.split("foo-bar").get "6a59a671", (error)->
           assert error
           done()
+
+
+  # -- Explicit --
+  
+  describe "showA", ->
+
+    describe "no callback", ->
+
+      before Helper.setup
+      before ->
+        vanity = new Vanity(host: "localhost:3003", token: "secret")
+        split  = vanity.split("foo-bar")
+        alternative = split.showA("30e95dc")
+
+      it "should return specified alternative", ->
+        assert.equal alternative, 0
+
+
+    describe "with callback", ->
+
+      vanity = new Vanity(host: "localhost:3003", token: "secret")
+      split  = vanity.split("foo-bar")
+
+      before Helper.setup
+      before (done)->
+        vanity = new Vanity(host: "localhost:3003", token: "secret")
+        split  = vanity.split("foo-bar")
+        split.showA "30e95dc", (error, result)->
+          alternative = result
+          done()
+
+      it "should pass specified alternative", ->
+        assert.equal alternative, 0
+
+  
+  describe "showB", ->
+
+    describe "no callback", ->
+
+      before Helper.setup
+      before ->
+        vanity = new Vanity(host: "localhost:3003", token: "secret")
+        split  = vanity.split("foo-bar")
+        alternative = split.showB("0e935dca")
+
+      it "should return specified alternative", ->
+        assert.equal alternative, 0
+
+
+    describe "with callback", ->
+
+      vanity = new Vanity(host: "localhost:3003", token: "secret")
+      split  = vanity.split("foo-bar")
+
+      before Helper.setup
+      before (done)->
+        vanity = new Vanity(host: "localhost:3003", token: "secret")
+        split  = vanity.split("foo-bar")
+        split.showB "0e935dca", (error, result)->
+          alternative = result
+          done()
+
+      it "should pass specified alternative", ->
+        assert.equal alternative, 0
 
 
   # -- Conflicts --
