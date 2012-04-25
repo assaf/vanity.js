@@ -9,15 +9,14 @@ Create a new client and configure it to use given server and access token.
 
 The options are:
 
-* host   - Hostname of vanity server, may include port, for example,
-  "vanity.local:443"
-* token  - Access token
+* url   - URL of vanity server, for example, "http://vanity.local:443"
+* token - Access token (required if server uses access token for authentication)
 
 Example:
 
 ```
 var Vanity = require("vanity"),
-    vanity = new Vanity({ host: "vanity.local:443", token: "supersecret" });
+    vanity = new Vanity({ url: "http://vanity.local:443", token: "supersecret" });
 
 vanity.activity({ actor: "Assaf", verb: "shared", object: "http://bit.ly/GLUa9S" })
 ```

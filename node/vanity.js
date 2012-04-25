@@ -2,38 +2,68 @@
 //
 // Example:
 //   var Vanity = require("vanity"),
-//       vanity = new Vanity({ host: "vanity.internal:443", token: "secret token" });
+//       vanity = new Vanity({ url: "http://vanity.internal:443", token: "secret token" });
 //
 //   vanity.activity({ actor: "Assaf", verb: "shared", object: "http://bit.ly/GLUa9S" })
 
 
-var Request = require("request"),
-    Util    = require("util"),
-    Events  = require("events");
+var Events  = require("events"),
+    Request = require("request"),
+    URL     = require("url"),
+    Util    = require("util");
 
 
 // Constructs a new Vanity client.  Options are:
-// host   - Host name of vanity server (may include port, e.g. "vanity.interna:443")
+// url    - URL to the vanity server (e.g. "http://vanity.internal")
 // token  - Access token
 function Vanity(options) {
+  this.connected = false;
   if (options) {
-    this.host = options.host;
+    this.url = options.url;
     this.token = options.token;
   }
   // We emit this error when we can't make send a request, but we don't want
   // the default behavior of uncaught exception to kill Node.
   this.on("error", function() { });
-  // Returns authorization headers.
-  this.headers = function() {
-    if (this.token)
-      return { authorization: "Bearer " + this.token };
-    else
-      return null;
-  }
 }
 
 
 Util.inherits(Vanity, Events.EventEmitter);
+
+
+// Setting the token updates the header
+Vanity.prototype.__defineSetter__("token", function(token) {
+  if (token)
+    this.headers = { authorization: "Bearer " + token };
+  else
+    this.headers = null;
+})
+
+// Setting the URL.  We take the parts we need (protocol, host and port).
+Vanity.prototype.__defineSetter__("url", function(url) {
+  if (url) {
+    url = URL.parse(url);
+    this._protocol = url.protocol;
+    this._host = url.host;
+    this.connected = true;
+  } else {
+    this.connected = false;
+  }
+})
+
+// Returns the URL.
+Vanity.prototype.__defineGetter__("url", function(url) {
+  return URL.format({ protocol: this._protocol || "http:",
+                      host:     this._host || "localhost" });
+})
+
+// Construct a URL to server resource given the path and optional query parameters.
+Vanity.prototype.urlFor = function(path, query) {
+  return URL.format({ protocol: this._protocol || "http:",
+                      host:     this._host || "localhost",
+                      pathname: path,
+                      query:    query });
+}
 
 
 // -- Activity stream ---
@@ -85,7 +115,7 @@ Util.inherits(Vanity, Events.EventEmitter);
 //   })
 Vanity.prototype.activity = function(activity) {
   // Ignore unless configured to connect to a server.
-  if (!this.host)
+  if (!this.connected)
     return;
 
   // Actor/object can be a string, in which case they are the display name.
@@ -107,7 +137,7 @@ Vanity.prototype.activity = function(activity) {
       };
 
   try {
-    Request.post({ url: "http://" + this.host + "/v1/activity", headers: this.headers(), json: params }, function(error, response, body) {
+    Request.post({ url: this.urlFor("/v1/activity"), headers: this.headers, json: params }, function(error, response, body) {
       if (error)
         self.emit("error", error);
       else if (response && response.statusCode >= 400)
@@ -148,7 +178,6 @@ function SplitTest(vanity, id) {
     throw new Error("Split test identifier may only contain alphanumeric, underscore and hyphen");
   this.id = id;
   this.vanity = vanity;
-  this.baseUrl = "http://" + vanity.host + "/v1/split/" + id;
 
   // Calculating an alternative is cheap, so we don't bother caching it.  But
   // there are two cases where we do want to cache.
@@ -235,7 +264,7 @@ SplitTest.prototype.show = function(participant, alternative, callback) {
     throw new Error("Expecting callback to be a function");
 
   // Ignore unless configured to connect to a server.
-  if (!vanity.host) {
+  if (!vanity.connected) {
     if (callback)
       process.nextTick(function() {
         callback(null, alternative);
@@ -244,7 +273,7 @@ SplitTest.prototype.show = function(participant, alternative, callback) {
   }
 
   params = { alternative: alternative };
-  Request.post({ url: this.baseUrl + "/" + participant, headers: vanity.headers(), json: params }, function(error, response, body) {
+  Request.post({ url: vanity.urlFor("/v1/split/" + this.id + "/" + participant), headers: vanity.headers, json: params }, function(error, response, body) {
     var actual;
     if (!error && response.statusCode >= 400)
       error = new Error("Server returned " + response.statusCode + ": " + body);
@@ -311,7 +340,7 @@ SplitTest.prototype.completed = function(participant, callback) {
   var vanity = this.vanity;
 
   // Ignore unless configured to connect to a server.
-  if (!vanity.host) {
+  if (!vanity.connected) {
     if (callback)
       process.nextTick(callback);
     return;
@@ -323,7 +352,7 @@ SplitTest.prototype.completed = function(participant, callback) {
       typeof(participant) != "number" && !(participant instanceof Number))
     throw new Error("Expecting participant to be identifier (string or number)");
 
-  Request.post({ url: this.baseUrl + "/" + participant + "/completed", headers: vanity.headers() }, function(error, response, body) {
+  Request.post({ url: vanity.urlFor("/v1/split/" + this.id + "/" + participant + "/completed"), headers: vanity.headers }, function(error, response, body) {
     // There are protocol errors (error) and server reported errors (4xx and
     // 5xx).
     if (!error && response.statusCode >= 400)
@@ -348,8 +377,10 @@ SplitTest.prototype.completed = function(participant, callback) {
 // joined      - When participant joined the test (Date)
 // completed   - When participant completed the test (Date)
 SplitTest.prototype.get = function(participant, callback) {
+  var vanity = this.vanity;
+
   // Ignore unless configured to connect to a server.
-  if (!this.vanity.host) {
+  if (!vanity.connected) {
     if (callback)
       process.nextTick(callback);
     return;
@@ -357,7 +388,7 @@ SplitTest.prototype.get = function(participant, callback) {
 
   if (!callback)
     throw new Error("Expecting callback as last argument");
-  Request.get({ url: this.baseUrl + "/" + participant, headers: this.vanity.headers() }, function(error, response, body) {
+  Request.get({ url: vanity.urlFor("/v1/split/" + this.id + "/" + participant), headers: this.vanity.headers }, function(error, response, body) {
     var result;
     if (!error && response.statusCode == 200) {
       result = JSON.parse(body);
@@ -382,18 +413,19 @@ SplitTest.prototype.get = function(participant, callback) {
 // created     - When this test was created (first participant)
 // alternative - The two alternatives
 SplitTest.prototype.stats = function(callback) {
+  var vanity = this.vanity;
   if (!callback)
     throw new Error("Expecting callback as last argument");
 
   // Ignore unless configured to connect to a server.
-  if (!this.vanity.host) {
+  if (!vanity.connected) {
     process.nextTick(function() {
-      callback(new Error("Missing host or token"));
+      callback(new Error("Missing url"));
     });
     return;
   }
 
-  Request.get({ url: this.baseUrl, headers: this.vanity.headers() }, function(error, response, body) {
+  Request.get({ url: vanity.urlFor("/v1/split/" + this.id), headers: this.vanity.headers }, function(error, response, body) {
     if (!error && response.statusCode >= 400)
       error = new Error("Server returned " + response.statusCode + ": " + body);
     if (body) {

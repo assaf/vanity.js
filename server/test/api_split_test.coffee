@@ -15,7 +15,7 @@ describe "API split test", ->
   before Helper.once
   before Helper.setup
   before (done)->
-    vanity = new Vanity(host: "localhost:3003", token: "secret")
+    vanity = new Vanity(url: "http://localhost:3003", token: "secret")
     split = vanity.split("foo-bar")
     # Record participants
     Async.forEach ["8c0521ee", "c2659ef8", "be8bb5b1", "f3cb65e5", "6d9d70c5"],

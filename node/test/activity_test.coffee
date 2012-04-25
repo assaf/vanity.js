@@ -6,7 +6,7 @@ Helper = require("./helper")
 describe "activity", ->
   activity   = null
   last_error = null
-  vanity     = new Vanity(host: "localhost:3003", token: "secret")
+  vanity     = new Vanity(url: "http://localhost:3003", token: "secret")
   vanity.on "error", (error)->
     last_error = error
 
@@ -171,7 +171,7 @@ describe "activity", ->
       assert.equal last_error.message, "Server returned 400: Activity requires verb"
 
 
-  describe "no host name", ->
+  describe "no URL", ->
 
     before Helper.newIndex
     before (done)->
@@ -198,7 +198,7 @@ describe "activity", ->
     before Helper.newIndex
     before (done)->
       last_error = null
-      nohandler = new Vanity(host: "localhost:3003", token: "secret")
+      nohandler = new Vanity(url: "http://localhost:3003", token: "secret")
       nohandler.activity actor: "Assaf"
       done()
       

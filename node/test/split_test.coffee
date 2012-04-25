@@ -17,7 +17,7 @@ describe "split", ->
 
       before Helper.setup
       before ->
-        vanity = new Vanity(host: "localhost:3003", token: "secret")
+        vanity = new Vanity(url: "http://localhost:3003", token: "secret")
         split  = vanity.split("foo-bar")
         alternative = split.show("8487599a", 0)
 
@@ -30,12 +30,12 @@ describe "split", ->
 
     describe "with callback", ->
 
-      vanity = new Vanity(host: "localhost:3003", token: "secret")
+      vanity = new Vanity(url: "http://localhost:3003", token: "secret")
       split  = vanity.split("foo-bar")
 
       before Helper.setup
       before (done)->
-        vanity = new Vanity(host: "localhost:3003", token: "secret")
+        vanity = new Vanity(url: "http://localhost:3003", token: "secret")
         split  = vanity.split("foo-bar")
         split.show "f3bfc5a1", 0, (error, result)->
           alternative = result
@@ -67,7 +67,7 @@ describe "split", ->
 
       before Helper.setup
       before ->
-        vanity = new Vanity(host: "localhost:3003", token: "secret")
+        vanity = new Vanity(url: "http://localhost:3003", token: "secret")
         split  = vanity.split("foo-bar")
         alternative = split.show("eb1f4c97")
 
@@ -98,7 +98,7 @@ describe "split", ->
 
     before Helper.setup
     before (done)->
-      vanity = new Vanity(host: "localhost:3003", token: "secret")
+      vanity = new Vanity(url: "http://localhost:3003", token: "secret")
       split  = vanity.split("foo-bar")
       split.show "1cf5814a", true, ->
         split.show "1cf5814a", false, (error, result)->
@@ -125,7 +125,7 @@ describe "split", ->
 
     before Helper.setup
     before (done)->
-      vanity = new Vanity(host: "localhost:3003", token: "secret")
+      vanity = new Vanity(url: "http://localhost:3003", token: "secret")
       split  = vanity.split("foo-bar")
       split.show("79d778d8")
       split.completed "79d778d8", (error, result)->
@@ -147,7 +147,7 @@ describe "split", ->
 
     before Helper.setup
     before (done)->
-      vanity = new Vanity(host: "localhost:3003", token: "secret")
+      vanity = new Vanity(url: "http://localhost:3003", token: "secret")
       split  = vanity.split("foo-bar")
       split.completed "163b06c0", (error, result)->
         done()
@@ -163,7 +163,7 @@ describe "split", ->
   
   describe "errors", ->
     before ->
-      vanity = new Vanity(host: "localhost:3003", token: "secret")
+      vanity = new Vanity(url: "http://localhost:3003", token: "secret")
       split  = vanity.split("foo-bar")
   
     describe "invalid test name", ->
@@ -185,7 +185,7 @@ describe "split", ->
         assert false, "Expected an error"
 
     describe "not connected", ->
-      broken = new Vanity(host: "nosuch", token: "secret")
+      broken = new Vanity(url: "http://nosuch", token: "secret")
 
       it "should not throw error when adding participant", ->
         broken.split("foo-bar").show("6a59a671")
@@ -207,7 +207,7 @@ describe "split", ->
 
       before Helper.setup
       before ->
-        vanity = new Vanity(host: "localhost:3003", token: "secret")
+        vanity = new Vanity(url: "http://localhost:3003", token: "secret")
         split  = vanity.split("foo-bar")
         alternative = split.showA("30e95dc")
 
@@ -217,12 +217,12 @@ describe "split", ->
 
     describe "with callback", ->
 
-      vanity = new Vanity(host: "localhost:3003", token: "secret")
+      vanity = new Vanity(url: "http://localhost:3003", token: "secret")
       split  = vanity.split("foo-bar")
 
       before Helper.setup
       before (done)->
-        vanity = new Vanity(host: "localhost:3003", token: "secret")
+        vanity = new Vanity(url: "http://localhost:3003", token: "secret")
         split  = vanity.split("foo-bar")
         split.showA "30e95dc", (error, result)->
           alternative = result
@@ -238,7 +238,7 @@ describe "split", ->
 
       before Helper.setup
       before ->
-        vanity = new Vanity(host: "localhost:3003", token: "secret")
+        vanity = new Vanity(url: "http://localhost:3003", token: "secret")
         split  = vanity.split("foo-bar")
         alternative = split.showB("0e935dca")
 
@@ -248,12 +248,12 @@ describe "split", ->
 
     describe "with callback", ->
 
-      vanity = new Vanity(host: "localhost:3003", token: "secret")
+      vanity = new Vanity(url: "http://localhost:3003", token: "secret")
       split  = vanity.split("foo-bar")
 
       before Helper.setup
       before (done)->
-        vanity = new Vanity(host: "localhost:3003", token: "secret")
+        vanity = new Vanity(url: "http://localhost:3003", token: "secret")
         split  = vanity.split("foo-bar")
         split.showB "0e935dca", (error, result)->
           alternative = result
@@ -273,9 +273,9 @@ describe "split", ->
 
       before Helper.setup
       before (done)->
-        vanityA = new Vanity(host: "localhost:3003", token: "secret")
+        vanityA = new Vanity(url: "http://localhost:3003", token: "secret")
         splitA  = vanityA.split("foo-bar")
-        vanityB = new Vanity(host: "localhost:3003", token: "secret")
+        vanityB = new Vanity(url: "http://localhost:3003", token: "secret")
         splitB  = vanityB.split("foo-bar")
 
         # Client A sets the alternative to 3 and
