@@ -43,6 +43,12 @@ server.configure ->
       res.end = end_fn
       end_fn.apply(res, arguments)
     next()
+
+  # When using access tokens, we need this one to make AJAX requests
+  token = process.env.VANITY_TOKEN?.split(/\s+/)?[0]
+  server.dynamicHelpers
+    access_token: (req, res)->
+      return token
   
 
 # Error handling for production

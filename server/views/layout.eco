@@ -4,6 +4,13 @@
     <title>Vanity<%= " - #{@title}" if @title %></title>
     <link rel="stylesheet" type="text/css" href="/stylesheets/screen.css">
     <script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+    <% if @access_token: %>
+    <script>
+      $.ajaxPrefilter(function(options, original, xhr) {
+        xhr.setRequestHeader("Authorization", "Bearer <%= @access_token %>");
+      })
+    </script>
+    <% end %>
     <script src="/javascripts/sugar-1.2.4.min.js"></script>
     <script src="/javascripts/d3.v2.min.js"></script>
     <script src="/javascripts/crossfilter.min.js"></script>
