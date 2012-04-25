@@ -15,7 +15,7 @@ describe "API split test", ->
   before Helper.once
   before Helper.setup
   before (done)->
-    vanity = new Vanity(host: "localhost:3003")
+    vanity = new Vanity(host: "localhost:3003", token: "secret")
     split = vanity.split("foo-bar")
     # Record participants
     Async.forEach ["8c0521ee", "c2659ef8", "be8bb5b1", "f3cb65e5", "6d9d70c5"],
@@ -38,7 +38,7 @@ describe "API split test", ->
 
     before (done)->
       # Collect the results
-      request.get base_url, (error, response)->
+      request.get base_url + "?access_token=secret", (error, response)->
         { statusCode, body } = response
         tests = JSON.parse(response.body).tests if statusCode == 200
         done()
@@ -70,6 +70,15 @@ describe "API split test", ->
       assert.equal tests[0].alternatives[0].completed, 0
       assert.equal tests[0].alternatives[1].completed, 2
 
+    describe "no token", ->
+      before (done)->
+        request.get base_url, (_, response)->
+          { statusCode, body } = response
+          done()
+
+      it "should return 401", ->
+        assert.equal statusCode, 401
+
 
   # -- Retrieving test --
 
@@ -80,19 +89,28 @@ describe "API split test", ->
 
     describe "no such test", ->
       before (done)->
-        request.get base_url + "nosuch", (_, response)->
+        request.get base_url + "nosuch?access_token=secret", (_, response)->
           { statusCode, body } = response
           done()
 
       it "should return 404", ->
         assert.equal statusCode, 404
 
+    describe "no token", ->
+      before (done)->
+        request.get base_url + "foo-bar", (_, response)->
+          { statusCode, body } = response
+          done()
+
+      it "should return 401", ->
+        assert.equal statusCode, 401
+
  
     describe "existing test", ->
 
       before (done)->
         # Collect the results
-        request.get base_url + "foo-bar", (error, response)->
+        request.get base_url + "foo-bar?access_token=secret", (error, response)->
           { statusCode, body } = response
           test = JSON.parse(response.body) if statusCode == 200
           done()

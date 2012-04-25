@@ -20,7 +20,7 @@ describe "API split test participants", ->
 
     before Helper.setup
     before (done)->
-      request.post base_url + "8fea081c", json: { alternative: 1 }, (_, response)->
+      request.post base_url + "8fea081c?access_token=secret", json: { alternative: 1 }, (_, response)->
         { statusCode, body } = response
         console.log body
         done()
@@ -35,7 +35,7 @@ describe "API split test participants", ->
       assert.equal body.alternative, 1
 
     it "should store participant", (done)->
-      request.get base_url + "8fea081c", (_, { body })->
+      request.get base_url + "8fea081c?access_token=secret", (_, { body })->
         result = JSON.parse(body)
         assert.equal result.participant, "8fea081c"
         assert.equal result.alternative, 1
@@ -51,9 +51,9 @@ describe "API split test participants", ->
 
     before Helper.setup
     before (done)->
-      request.post base_url + "ad9fe6597", json: { alternative: 1 }, done
+      request.post base_url + "ad9fe6597?access_token=secret", json: { alternative: 1 }, done
     before (done)->
-      request.post base_url + "ad9fe6597", json: { alternative: 0 }, (_, response)->
+      request.post base_url + "ad9fe6597?access_token=secret", json: { alternative: 0 }, (_, response)->
         { statusCode, body } = response
         done()
 
@@ -74,9 +74,9 @@ describe "API split test participants", ->
 
     before Helper.setup
     before (done)->
-      request.post base_url + "b6f34cba", json: { alternative: 1 }, done
+      request.post base_url + "b6f34cba?access_token=secret", json: { alternative: 1 }, done
     before (done)->
-      request.post base_url + "b6f34cba/completed", (_, response)->
+      request.post base_url + "b6f34cba/completed?access_token=secret", (_, response)->
         { statusCode, body } = response
         done()
 
@@ -84,7 +84,7 @@ describe "API split test participants", ->
       assert.equal statusCode, 202
 
     it "should update participant", (done)->
-      request.get base_url + "b6f34cba", (_, { body })->
+      request.get base_url + "b6f34cba?access_token=secret", (_, { body })->
         result = JSON.parse(body)
         assert.equal result.participant, "b6f34cba"
         assert.equal result.alternative, 1
@@ -98,7 +98,7 @@ describe "API split test participants", ->
 
     before Helper.setup
     before (done)->
-      request.post base_url + "d5df3958/completed", (_, response)->
+      request.post base_url + "d5df3958/completed?access_token=secret", (_, response)->
         { statusCode } = response
         done()
 
@@ -106,7 +106,7 @@ describe "API split test participants", ->
       assert.equal statusCode, 202
 
     it "should not store participant", (done)->
-      request.get base_url + "d5df3958", (_, { statusCode })->
+      request.get base_url + "d5df3958?access_token=secret", (_, { statusCode })->
         assert.equal statusCode, 404
         done()
 
@@ -117,7 +117,7 @@ describe "API split test participants", ->
     statusCode = body = null
 
     before (done)->
-      request.post base_url + "fbb28a111", json: { alternative: "" }, (_, response)->
+      request.post base_url + "fbb28a111?access_token=secret", json: { alternative: "" }, (_, response)->
         { statusCode, body } = response
         done()
 
@@ -125,7 +125,7 @@ describe "API split test participants", ->
       assert.equal statusCode, 200
 
     it "should assume false", (done)->
-      request.get base_url + "fbb28a111", (_, { body })->
+      request.get base_url + "fbb28a111?access_token=secret", (_, { body })->
         result = JSON.parse(body)
         assert.equal result.alternative, 0
         done()
@@ -135,7 +135,7 @@ describe "API split test participants", ->
     statusCode = body = null
 
     before (done)->
-      request.post base_url + "b715d1f4e", json: { alternative: -5 }, (_, response)->
+      request.post base_url + "b715d1f4e?access_token=secret", json: { alternative: -5 }, (_, response)->
         { statusCode, body } = response
         done()
 
@@ -143,7 +143,7 @@ describe "API split test participants", ->
       assert.equal statusCode, 200
 
     it "should assume true", (done)->
-      request.get base_url + "b715d1f4e", (_, { body })->
+      request.get base_url + "b715d1f4e?access_token=secret", (_, { body })->
         result = JSON.parse(body)
         assert.equal result.alternative, 1
         done()
@@ -153,7 +153,7 @@ describe "API split test participants", ->
     statusCode = body = null
 
     before (done)->
-      request.post base_url + "76c18f432", json: { alternative: 1.02 }, (_, response)->
+      request.post base_url + "76c18f432?access_token=secret", json: { alternative: 1.02 }, (_, response)->
         { statusCode, body } = response
         done()
 
@@ -161,7 +161,7 @@ describe "API split test participants", ->
       assert.equal statusCode, 200
 
     it "should assume true", (done)->
-      request.get base_url + "76c18f432", (_, { body })->
+      request.get base_url + "76c18f432?access_token=secret", (_, { body })->
         result = JSON.parse(body)
         assert.equal result.alternative, 1
         done()
@@ -171,7 +171,7 @@ describe "API split test participants", ->
     statusCode = body = null
 
     before (done)->
-      url = "http://localhost:3003/v1/split/foo+bar/76c18f432"
+      url = "http://localhost:3003/v1/split/foo+bar/76c18f432?access_token=secret"
       request.post url, json: { alternative: 1 }, (_, response)->
         { statusCode, body } = response
         done()

@@ -254,3 +254,15 @@ Response JSON document includes the following properties:
 If the participant never joined this split test, the request returns status code
 404.
 
+
+## Authentication
+
+You can force all API requests to authenticate by setting the environment
+variable `VANITY_TOKEN`.  You can specify multiple authentication tokens by
+separating them with spaces.
+
+Authentication scheme is based on [OAuth 2.0 Bearer
+Tokens](http://self-issued.info/docs/draft-ietf-oauth-v2-bearer.html).  You can
+send the request token as the query parameter `access_token`, form field
+parameter `access_token` or the header `Authorization` with scheme `bearer`.
+

@@ -26,7 +26,7 @@ describe "API activity", ->
 
     describe "valid", ->
       before (done)->
-        request.post "http://localhost:3003/v1/activity", json: params, (_, response)->
+        request.post "http://localhost:3003/v1/activity?access_token=secret", json: params, (_, response)->
           { statusCode, headers, body } = response
           done()
 
@@ -48,7 +48,7 @@ describe "API activity", ->
 
     describe "not valid", ->
       before (done)->
-        request.post "http://localhost:3003/v1/activity", json: { }, (_, response)->
+        request.post "http://localhost:3003/v1/activity?access_token=secret", json: { }, (_, response)->
           { statusCode, headers, body } = response
           done()
 
@@ -61,7 +61,7 @@ describe "API activity", ->
 
     describe "no body", ->
       before (done)->
-        request.post "http://localhost:3003/v1/activity", (_, response)->
+        request.post "http://localhost:3003/v1/activity?access_token=secret", (_, response)->
           { statusCode, headers, body } = response
           done()
 
@@ -70,6 +70,16 @@ describe "API activity", ->
 
       it "should return error message", ->
         assert.equal body, "Activity requires verb"
+
+
+    describe "no token", ->
+      before (done)->
+        request.post "http://localhost:3003/v1/activity", json: params, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return 401", ->
+        assert.equal statusCode, 401
 
 
   # -- Getting an activity --
@@ -90,7 +100,7 @@ describe "API activity", ->
 
       before (done)->
         headers = { "Accept": "application/json" }
-        request.get "http://localhost:3003/v1/activity/fe936972", headers: headers, (_, response)->
+        request.get "http://localhost:3003/v1/activity/fe936972?access_token=secret", headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
 
@@ -132,7 +142,7 @@ describe "API activity", ->
 
       before (done)->
         headers = { "Accept": "*/*" }
-        request.get "http://localhost:3003/v1/activity/f0000002", headers: headers, (_, response)->
+        request.get "http://localhost:3003/v1/activity/f0000002?access_token=secret", headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
 
@@ -142,6 +152,18 @@ describe "API activity", ->
       it "should return an error message", ->
         assert.equal body, "Not Found"
   
+    describe "no token", ->
+      statusCode = body = headers = null
+
+      before (done)->
+        headers = { "Accept": "*/*" }
+        request.get "http://localhost:3003/v1/activity/f0000002", headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return 401", ->
+        assert.equal statusCode, 401
+
 
   # -- Listing all activities --
   
@@ -160,7 +182,7 @@ describe "API activity", ->
     describe "", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        request.get "http://localhost:3003/v1/activity", headers: headers, (_, response)->
+        request.get "http://localhost:3003/v1/activity?access_token=secret", headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
 
@@ -207,7 +229,7 @@ describe "API activity", ->
     describe "query", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        url = "http://localhost:3003/v1/activity?query=NOT+assaf"
+        url = "http://localhost:3003/v1/activity?access_token=secret&query=NOT+assaf"
         request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
@@ -234,7 +256,7 @@ describe "API activity", ->
     describe "limit", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        url = "http://localhost:3003/v1/activity?limit=2"
+        url = "http://localhost:3003/v1/activity?access_token=secret&limit=2"
         request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
@@ -257,7 +279,7 @@ describe "API activity", ->
     describe "offset", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        url = "http://localhost:3003/v1/activity?offset=1&limit=1"
+        url = "http://localhost:3003/v1/activity?access_token=secret&offset=1&limit=1"
         request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
@@ -279,7 +301,7 @@ describe "API activity", ->
     describe "start", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        url = "http://localhost:3003/v1/activity?start=2011-03-18T18:51:00Z"
+        url = "http://localhost:3003/v1/activity?access_token=secret&start=2011-03-18T18:51:00Z"
         request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
@@ -294,7 +316,7 @@ describe "API activity", ->
     describe "end", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        url = "http://localhost:3003/v1/activity?end=2011-03-18T18:51:00Z"
+        url = "http://localhost:3003/v1/activity?access_token=secret&end=2011-03-18T18:51:00Z"
         request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
@@ -308,7 +330,7 @@ describe "API activity", ->
     describe "start/end", ->
       before (done)->
         headers = { "Accept": "application/json" }
-        url = "http://localhost:3003/v1/activity?start=2011-03-18T18:50:30Z&end=2011-03-18T18:51:30Z"
+        url = "http://localhost:3003/v1/activity?access_token=secret&start=2011-03-18T18:50:30Z&end=2011-03-18T18:51:30Z"
         request.get url, headers: headers, (_, response)->
           { statusCode, headers, body } = response
           done()
@@ -317,6 +339,17 @@ describe "API activity", ->
         { items } = JSON.parse(body)
         assert.equal items.length, 1
         assert.equal items[0].actor.displayName, "Jerome"
+
+    describe "no token", ->
+      before (done)->
+        headers = { "Accept": "application/json" }
+        url = "http://localhost:3003/v1/activity?start=2011-03-18T18:50:30Z&end=2011-03-18T18:51:30Z"
+        request.get url, headers: headers, (_, response)->
+          { statusCode, headers, body } = response
+          done()
+
+      it "should return 401", ->
+        assert.equal statusCode, 401
 
 
   # -- Activity stream --
@@ -329,7 +362,7 @@ describe "API activity", ->
     before Helper.newIndex
     before (done)->
       # Fire up the event source, we need to be connected to receive anything.
-      event_source = new EventSource("http://localhost:3003/v1/activity/stream")
+      event_source = new EventSource("http://localhost:3003/v1/activity/stream?access_token=secret")
       # Wait until we're connected, then create activities and have then sent to event source.
       event_source.onopen = ->
         file = require("fs").readFileSync("#{__dirname}/fixtures/activities.json")
@@ -361,6 +394,8 @@ describe "API activity", ->
   
   describe "delete", ->
 
+    statusCode = null
+
     before Helper.newIndex
     before (done)->
       activities = [
@@ -372,18 +407,18 @@ describe "API activity", ->
       , done
 
     it "should delete activity", (done)->
-      request.del "http://localhost:3003/v1/activity/015f13c4", ->
+      request.del "http://localhost:3003/v1/activity/015f13c4?access_token=secret", ->
         Activity.get "015f13c4", (error, doc)->
           assert !error && !doc
           done()
 
     it "should return 204", (done)->
-      request.del "http://localhost:3003/v1/activity/015f13c4", (_, response)->
+      request.del "http://localhost:3003/v1/activity/015f13c4?access_token=secret", (_, response)->
         assert.equal response.statusCode, 204
         done()
 
     it "should not fail if no such activity", (done)->
-      request.del "http://localhost:3003/v1/activity/nosuch", (error, response)->
+      request.del "http://localhost:3003/v1/activity/nosuch?access_token=secret", (error, response)->
         assert.equal response.statusCode, 204
         done()
 
@@ -392,3 +427,11 @@ describe "API activity", ->
         assert doc && doc.actor
         done()
 
+    describe "no token", ->
+      before (done)->
+        request.del "http://localhost:3003/v1/activity/015f13c4", (_, response)->
+          { statusCode } = response
+          done()
+
+      it "should return 401", ->
+        assert.equal statusCode, 401

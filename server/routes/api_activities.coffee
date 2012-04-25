@@ -1,12 +1,13 @@
-QS       = require("querystring")
-Express  = require("express")
-Activity = require("../models/activity")
-logger   = require("../config/logger")
-server   = require("../config/server")
+QS            = require("querystring")
+Express       = require("express")
+Activity      = require("../models/activity")
+authenticate  = require("../config/authenticate")
+logger        = require("../config/logger")
+server        = require("../config/server")
 
 
 # Create a new activity.
-server.post "/v1/activity", (req, res, next)->
+server.post "/v1/activity", authenticate, (req, res, next)->
   Activity.create req.body, (error, id)->
     if error
       res.send error.message, 400
@@ -15,7 +16,7 @@ server.post "/v1/activity", (req, res, next)->
 
 
 # Retrieve recent activities
-server.get "/v1/activity", (req, res)->
+server.get "/v1/activity", authenticate, (req, res)->
   params = {}
   # Only add query fields that are present.  We use params object to construct query string for next/prev navigation
   # links, so don't include junk in there.
@@ -53,8 +54,9 @@ server.get "/v1/activity", (req, res)->
 
     res.send result, 200
 
+
 # Server-sent events activity stream.
-server.get "/v1/activity/stream", (req, res, next)->
+server.get "/v1/activity/stream", authenticate, (req, res, next)->
   res.writeHead 200,
     "Content-Type":   "text/event-stream; charset=utf-8"
     "Cache-Control":  "no-cache"
@@ -71,8 +73,9 @@ server.get "/v1/activity/stream", (req, res, next)->
   res.socket.on "close", ->
     Activity.removeListener "activity", send
 
+
 # Retrieve single activity.
-server.get "/v1/activity/:id", (req, res, next)->
+server.get "/v1/activity/:id", authenticate, (req, res, next)->
   Activity.get req.params.id, (error, activity)->
     if error
       next(error)
@@ -81,8 +84,9 @@ server.get "/v1/activity/:id", (req, res, next)->
     else
       res.send 404
 
+
 # Delete activity.
-server.del "/v1/activity/:id", (req, res, next)->
+server.del "/v1/activity/:id", authenticate, (req, res, next)->
   Activity.delete req.params.id, (error)->
     if error
       next(error)

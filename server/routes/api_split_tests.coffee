@@ -1,19 +1,21 @@
-logger   = require("../config/logger")
-redis    = require("../config/redis")
-server   = require("../config/server")
-SplitTest = require("../models/split_test")
+authenticate  = require("../config/authenticate")
+logger        = require("../config/logger")
+redis         = require("../config/redis")
+server        = require("../config/server")
+SplitTest     = require("../models/split_test")
 
 
 # Returns a list of all active split test.
-server.get "/v1/split", (req, res, next)->
+server.get "/v1/split", authenticate, (req, res, next)->
   SplitTest.list (error, tests)->
     if tests
       res.send tests: tests
     else
       next(error)
 
+
 # Returns information about a split test.
-server.get "/v1/split/:test", (req, res, next)->
+server.get "/v1/split/:test", authenticate, (req, res, next)->
   SplitTest.load req.params.test, (error, test)->
     if test
       res.send
@@ -24,8 +26,9 @@ server.get "/v1/split/:test", (req, res, next)->
     else
       next(error)
 
+
 # Send this request to indicate participant joined the test.
-server.post "/v1/split/:test/:participant", (req, res, next)->
+server.post "/v1/split/:test/:participant", authenticate, (req, res, next)->
   alternative = parseInt(req.body.alternative, 10)
   try
     SplitTest.participated req.params.test, req.params.participant, alternative, (error, result)->
@@ -36,8 +39,9 @@ server.post "/v1/split/:test/:participant", (req, res, next)->
   catch error
     res.send error.message, 400
 
+
 # Send this request to indicate participant completed the test.
-server.post "/v1/split/:test/:participant/completed", (req, res, next)->
+server.post "/v1/split/:test/:participant/completed", authenticate, (req, res, next)->
   try
     SplitTest.completed req.params.test, req.params.participant, (error)->
       if error
@@ -47,8 +51,9 @@ server.post "/v1/split/:test/:participant/completed", (req, res, next)->
   catch error
     res.send error.message, 404
 
+
 # Returns information about participant.
-server.get "/v1/split/:test/:participant", (req, res, next)->
+server.get "/v1/split/:test/:participant", authenticate, (req, res, next)->
   SplitTest.getParticipant req.params.test, req.params.participant, (error, result)->
     if result
       res.send result

@@ -1,4 +1,6 @@
 process.env.NODE_ENV = "test"
+process.env.VANITY_TOKEN = "secret"
+
 
 Async     = require("async")
 Browser   = require("zombie")
