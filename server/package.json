@@ -1,5 +1,5 @@
 { "name": "vanity-server",
-  "version": "0.2.0",
+  "version": "0.5.0",
   "description": "Vanity dashboard and API",
   "author": "Assaf Arkin <assaf@labnotes.org> (http://labnotes.org/)",
   "main": "index",
